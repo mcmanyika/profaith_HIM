@@ -424,7 +424,7 @@ function DocumentsPage() {
           ) : (
             <>
               {/* Table Headers */}
-              <div className="grid grid-cols-12 gap-4 mb-4 px-4 font-medium text-gray-500">
+              <div className="hidden md:grid grid-cols-12 gap-4 mb-4 px-4 font-medium text-gray-500">
                 <div 
                   className="col-span-4 cursor-pointer hover:text-gray-700"
                   onClick={() => handleSort('file_name')}
@@ -452,18 +452,20 @@ function DocumentsPage() {
                 {documents.map((doc) => (
                   <div
                     key={doc.id}
-                    className="grid grid-cols-12 gap-4 items-center p-4 border rounded-md"
+                    className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center p-4 border rounded-md"
                   >
-                    <div className="col-span-4">
-                      <h3 className="font-medium">{doc.file_name}</h3>
+                    <div className="col-span-1 md:col-span-4">
+                      <h3 className="font-medium text-sm md:text-base">{doc.file_name}</h3>
                     </div>
-                    <div className="col-span-3">
+                    <div className="col-span-1 md:col-span-3 text-sm md:text-base">
+                      <span className="md:hidden font-medium mr-2">Category:</span>
                       {documentCategories.find(c => c.id === doc.category)?.label}
                     </div>
-                    <div className="col-span-3">
+                    <div className="col-span-1 md:col-span-3 text-sm md:text-base">
+                      <span className="md:hidden font-medium mr-2">Upload Date:</span>
                       {new Date(doc.created_at).toLocaleDateString()}
                     </div>
-                    <div className="col-span-2 flex justify-end space-x-2">
+                    <div className="col-span-1 md:col-span-2 flex justify-start md:justify-end space-x-2 mt-2 md:mt-0">
                       <button
                         onClick={() => handleDownload(doc)}
                         className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"

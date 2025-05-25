@@ -87,8 +87,8 @@ function Admin({ children }) {
 
       {/* Main Content */}
       <main className="flex-1 pb-16 md:pb-0 w-full transition-all duration-300 ease-in-out">
-        <div className="overflow-auto h-[calc(200vh-8rem)]">
-          <Header />
+        <Header />
+        <div className="overflow-auto h-[calc(100vh-4rem)]">
           {children}
           <footer className="hidden md:block bg-white dark:bg-gray-800 text-center text-sm p-4 border-t border-gray-200 dark:border-gray-700">
             <p>&copy; {new Date().getFullYear()} All rights reserved.</p>

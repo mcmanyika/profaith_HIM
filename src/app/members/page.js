@@ -493,98 +493,68 @@ function MembersPage() {
             )}
           </div>
 
-          {/* Table Layout */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white rounded-lg overflow-hidden">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('full_name')}>
-                    <div className="flex items-center space-x-1">
-                      <span>Name</span>
-                      {sortField === 'full_name' && (
-                        <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('occupation')}>
-                    <div className="flex items-center space-x-1">
-                      <span>Occupation</span>
-                      {sortField === 'occupation' && (
-                        <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('country')}>
-                    <div className="flex items-center space-x-1">
-                      <span>Country</span>
-                      {sortField === 'country' && (
-                        <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('availability')}>
-                    <div className="flex items-center space-x-1">
-                      <span>Availability</span>
-                      {sortField === 'availability' && (
-                        <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                      )}
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {getPaginatedProfiles().map((profile) => (
-                  <tr key={profile.id} 
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleProfileClick(profile)}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          {profile.avatar_url ? (
-                            <Image
-                              src={profile.avatar_url}
-                              alt={profile.full_name || 'Profile'}
-                              width={40}
-                              height={40}
-                              className="rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                              <span className="text-gray-500 text-sm capitalize">
-                                {(profile.full_name || '?')[0].toUpperCase()}
-                              </span>
-                            </div>
-                          )}
+          {/* Grid Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {getPaginatedProfiles().map((profile) => (
+              <div
+                key={profile.id}
+                onClick={() => handleProfileClick(profile)}
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer border border-gray-100"
+              >
+                <div className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      {profile.avatar_url ? (
+                        <Image
+                          src={profile.avatar_url}
+                          alt={profile.full_name || 'Profile'}
+                          width={48}
+                          height={48}
+                          className="rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-500 text-lg capitalize">
+                            {(profile.full_name || '?')[0].toUpperCase()}
+                          </span>
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 capitalize">
-                            {profile.full_name || 'Anonymous'}
-                          </div>
-                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 capitalize">
+                        {profile.full_name || 'Anonymous'}
+                      </h3>
+                      <p className="text-sm text-gray-500">{profile.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 space-y-2">
+                    {profile.occupation && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <BriefcaseIcon className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{profile.occupation}</span>
                       </div>
-                    </td>
-                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{profile.occupation || '-'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{profile.country || '-'}</div>
-                    </td>
-                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
+                    )}
+                    
+                    {profile.country && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{profile.country}</span>
+                      </div>
+                    )}
+                    
+                    {profile.availability && (
+                      <div className="flex items-center text-sm text-gray-600">
                         {getAvailabilityIcon(profile.availability)}
-                        <span className="text-sm text-gray-900">
-                          {getAvailabilityText(profile.availability)}
-                        </span>
+                        <span className="ml-2">{getAvailabilityText(profile.availability)}</span>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Profile Detail Modal */}
