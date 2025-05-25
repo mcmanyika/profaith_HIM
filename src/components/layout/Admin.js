@@ -82,15 +82,6 @@ function Admin({ children }) {
       <aside className="group fixed md:static left-0 bottom-0 md:top-0 h-16 md:h-screen w-full md:w-16 hover:md:w-64 transition-all duration-300 ease-in-out bg-white  border-t md:border-r border-gray-200 dark:border-gray-700 p-4">
         <div className="hidden md:flex justify-around md:justify-center">
           <Sidebar />
-          <button 
-            onClick={handleLogout}
-            className="flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span className="hidden group-hover:inline">Logout</span>
-          </button>
         </div>
       </aside>
 
