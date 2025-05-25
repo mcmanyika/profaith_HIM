@@ -490,8 +490,8 @@ const Dashboard = () => {
           </motion.div>
         )}
 
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 backdrop-blur-sm bg-opacity-90">
+        <div className="">
+          <div className="bg-white rounded-2xl shadow-xl p-6 backdrop-blur-sm bg-opacity-90">
             {/* Category Tabs */}
             <div className="flex flex-col space-y-4 md:space-y-0  md:justify-between mb-8">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6  gap-3">
@@ -525,7 +525,7 @@ const Dashboard = () => {
             </div>
 
             {/* Project Overview */}
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mb-8 shadow-inner">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 mb-8 shadow-inner">
               {/* User Summary */}
               <div className="grid grid-cols-1 gap-6 w-full mb-8">
                 <div className="flex flex-col justify-center h-full">
