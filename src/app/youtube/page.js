@@ -51,7 +51,7 @@ const YouTubePage = () => {
         />
         
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold mb-6">Project Updates</h1>
+          <h1 className="text-2xl font-bold mb-6">Investment Updates</h1>
           
           <div className="grid gap-6">
             {userLevel === 5 && <YouTubeUpload />}

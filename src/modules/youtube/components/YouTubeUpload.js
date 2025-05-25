@@ -98,9 +98,6 @@ const YouTubeUpload = () => {
             placeholder="Enter YouTube video URL"
             required
           />
-          <p className="mt-1 text-sm text-gray-500">
-            Enter the full YouTube video URL (e.g., https://www.youtube.com/watch?v=...)
-          </p>
         </div>
 
         <button
