@@ -88,8 +88,8 @@ function PaymentForm({ proposalId, investorId, amount }) {
 
         // Show success message before redirect
         toast.success('Payment successful! Redirecting...');
-        // Redirect to success page
-        router.push('/success');
+        // Redirect to success page with query parameters
+        router.push(`/success?amount=${amount}&proposalId=${proposalId}&investorId=${investorId}`);
       }
     } catch (error) {
       console.error('Payment error:', error);
