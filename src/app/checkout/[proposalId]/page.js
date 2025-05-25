@@ -119,19 +119,19 @@ export default function CheckoutPageWrapper({ params }) {
   return (
     <Admin>
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
             {/* Left column - Proposal details */}
-            <div className="p-8 bg-gray-50 border-r border-gray-200">
-              <div className="space-y-8">
+            <div className="p-4 sm:p-8 bg-gray-50 border-r border-gray-200">
+              <div className="space-y-4 sm:space-y-8">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{proposal.title}</h1>
-                  <p className="mt-4 text-gray-600 leading-relaxed">{proposal.description}</p>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{proposal.title}</h1>
+                  <p className="mt-2 sm:mt-4 text-gray-600 leading-relaxed">{proposal.description}</p>
                 </div>
                 
-                <div className="bg-white rounded-lg p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Investment Details</h2>
+                <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">Investment Details</h2>
                   <dl className="space-y-4">
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
                       <dt className="text-gray-600">Status</dt>
@@ -155,9 +155,9 @@ export default function CheckoutPageWrapper({ params }) {
             </div>
 
             {/* Right column - Checkout form */}
-            <div className="p-8">
-              <div className="max-w-md mx-auto">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Complete Your Investment</h2>
+            <div className="p-2">
+              <div className="w-full">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Complete Your Investment</h2>
                 {clientSecret ? (
                   <Elements stripe={stripePromise} options={{ clientSecret }}>
                     <CheckoutForm clientSecret={clientSecret} proposalId={proposalId} investorId={investorId} amount={amount} />

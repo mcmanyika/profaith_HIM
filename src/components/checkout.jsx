@@ -161,7 +161,7 @@ export default function CheckoutForm({ clientSecret, proposalId, investorId, amo
   };
   
   return (
-    <div className="checkout-container">
+    <div className="mx-auto">
       <Elements stripe={stripePromise} options={{ appearance, clientSecret }}>
         <PaymentForm 
           proposalId={proposalId}
