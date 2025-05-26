@@ -26,14 +26,25 @@ const ProposalCardSkeleton = () => (
 
 // Empty state component
 const EmptyState = () => (
-  <div className="text-center py-12">
-    <div className="text-gray-400 mb-4">
-      <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl shadow-md border border-gray-100">
+    <div className="mb-4">
+      {/* Agriculture icon */}
+      <svg className="w-14 h-14 text-green-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21V3m0 0C7.03 3 3 7.03 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-4.97-4.03-9-9-9z" />
       </svg>
     </div>
-    <h3 className="text-lg font-medium text-gray-900">No proposals found</h3>
-    <p className="mt-2 text-sm text-gray-500">Try adjusting your filters or check back later for new proposals.</p>
+    <h3 className="text-lg font-semibold text-gray-700 mb-2">
+      No active projects in <span className="text-green-600">AGRICULTURE</span> category
+    </h3>
+    <p className="text-gray-500 mb-4 text-center max-w-xs">
+      Check back soon for new opportunities, or explore other categories to find projects that interest you.
+    </p>
+    <button
+      onClick={() => window.location.href = '/proposals'}
+      className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition"
+    >
+      Explore Other Categories
+    </button>
   </div>
 );
 
@@ -51,6 +62,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
   const [user, setUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMembershipPayment, setHasMembershipPayment] = useState(false);
+  const [hasAnyPayments, setHasAnyPayments] = useState(false);
   const proposalsPerPage = 5;
   const supabase = createClientComponentClient();
   const router = useRouter();
@@ -177,8 +189,17 @@ export default function ProposalList({ showInvestButton = true, category = null,
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       
-      // Check if user has already paid for membership
       if (user) {
+        // Check if user has any payments
+        const { data: transactions } = await supabase
+          .from('transactions')
+          .select('id')
+          .eq('metadata->>investor_id', user.id)
+          .limit(1);
+        
+        setHasAnyPayments(transactions && transactions.length > 0);
+
+        // Check if user has already paid for membership
         const { data: investments } = await supabase
           .from('investments')
           .select('*')
@@ -384,7 +405,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
       </div>
 
       {/* Proposal Cards Grid */}
-      <div className={`grid grid-cols-1 ${currentProposals.length === 1 ? 'w-full' : 'md:grid-cols-2 lg:grid-cols-2'} gap-6`}>
+      <div className={`grid grid-cols-1 ${currentProposals.length === 1 ? 'w-full' : 'md:grid-cols-2 lg:grid-cols-2'} gap-6 mb-12`}>
         {currentProposals.length === 0 ? (
           <EmptyState />
         ) : (
@@ -401,6 +422,21 @@ export default function ProposalList({ showInvestButton = true, category = null,
                     {proposal.title.charAt(0).toUpperCase() + proposal.title.slice(1).toLowerCase()}
                   </h3>
                 </div>
+
+                {/* View My Payments Button */}
+                {showInvestButton && proposal.status === 'active' && !hasMembershipPayment && hasAnyPayments && (
+                  <div className="mb-6 flex justify-end">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push('/payments');
+                      }}
+                      className="px-3 py-2 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-lg transition-colors duration-200 font-medium text-xs shadow-sm hover:opacity-90 hover:shadow-md"
+                    >
+                      View My Payments
+                    </button>
+                  </div>
+                )}
 
                 {/* Budget and Raised Amount */}
                 <div className="space-y-6">
@@ -436,18 +472,6 @@ export default function ProposalList({ showInvestButton = true, category = null,
                     </div>
                   </div>
                 </div>
-
-                {/* Action Button */}
-                {showInvestButton && proposal.status === 'active' && !hasMembershipPayment && (
-                  <div className="mt-8">
-                    <button
-                      onClick={(e) => handleInvestClick(proposal, e)}
-                      className="w-full px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-500 transition-colors duration-200 font-medium shadow-sm hover:shadow-md"
-                    >
-                      Make Payment
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           ))
@@ -455,7 +479,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex justify-center items-center space-x-4 mt-12">
+      <div className="flex justify-center items-center space-x-4 pt-16 mt-8">
         <button
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}

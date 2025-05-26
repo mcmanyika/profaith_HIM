@@ -4,6 +4,7 @@ import Admin from "../../components/layout/Admin";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { withAuth } from '../../utils/withAuth'
 import ProposalList from "../../modules/proposals/components/ProposalList";
+import ProposalDetailModal from '../../modules/proposals/components/ProposalDetailModal';
 import YouTubeVideo from "./utils/youtube";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -20,6 +21,22 @@ const CATEGORIES = [
   { name: "MANUFACTURING", icon: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" },
   { name: "MEMBERSHIP", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
 ];
+
+// Example MembershipModal component
+const MembershipModal = ({ onClose }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div className="bg-white rounded-lg p-8 shadow-lg w-full max-w-md">
+      <h2 className="text-xl font-bold mb-4">Membership</h2>
+      <p>Membership details and actions go here.</p>
+      <button
+        className="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        onClick={onClose}
+      >
+        Close
+      </button>
+    </div>
+  </div>
+);
 
 const Dashboard = () => {
   const [selectedTab, setSelectedTab] = useState(() => {
@@ -44,6 +61,8 @@ const Dashboard = () => {
   const [documents, setDocuments] = useState([]);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [userInvestments, setUserInvestments] = useState([]);
+  const [hasMembershipPayment, setHasMembershipPayment] = useState(false);
+  const [showMembershipModal, setShowMembershipModal] = useState(false);
   const supabase = createClientComponentClient();
   const documentCategories = [
     { 
@@ -167,6 +186,12 @@ const Dashboard = () => {
           setUserInvestments([]);
           return;
         }
+
+        // Check if user has any membership payments
+        const hasMembership = investments.some(inv => 
+          inv.proposals?.category === 'MEMBERSHIP'
+        );
+        setHasMembershipPayment(hasMembership);
 
         setUserInvestments(investments);
         await updateUserStats(investments, selectedProjectId);
@@ -686,15 +711,38 @@ const Dashboard = () => {
                     </div>
                   </motion.div>
                 </>
+              ) : selectedTab === "MEMBERSHIP" && !hasMembershipPayment ? (
+                <motion.div 
+                  whileHover={{ scale: 1.02 }}
+                  className="flex-1 bg-gradient-to-br from-lime-400 to-lime-500 rounded-xl p-8 text-center flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <div className="flex flex-col items-center justify-center text-white">
+                    <svg className="h-16 w-16 text-white mb-4" />
+                    <div className="text-lg font-semibold mb-2 capitalize">
+                      You are not a paid member yet.
+                    </div>
+                     {/* Membership Modal Trigger */}
+                        <button
+                          className="mb-4 px-4 py-2 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded hover:from-cyan-600 hover:to-cyan-700 transition-all duration-300 shadow-sm hover:shadow-md capitalize"
+                          onClick={() => setShowMembershipModal(true)}
+                        >
+                          Click here to make a payment
+                        </button>
+                  </div>
+                </motion.div>
               ) : (
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
-                  className="flex-1 bg-white rounded-xl p-8 text-center flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="flex-1 bg-gradient-to-br from-lime-400 to-lime-500 rounded-xl p-8 text-center flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  <div className="text-lg text-gray-600">
-                    {proposalData
-                      ? `You haven't invested in ${selectedTab} yet`
-                      : `No active project in ${selectedTab} category`}
+                  <div className="flex flex-col items-center justify-center text-white">
+                    <svg className="h-16 w-16 text-white mb-4" />
+                    <div className="text-lg font-semibold mb-2">
+                      You have not yet invested in {selectedTab} category
+                    </div>
+                    <div className="text-sm mb-4">
+                      Explore investments opportunities available!
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -742,6 +790,18 @@ const Dashboard = () => {
                   userId={user?.id}
                 />
               </div>
+            )}
+
+
+            {/* Membership Modal */}
+            {showMembershipModal && proposalData && (
+              <ProposalDetailModal
+                proposal={{
+                  ...proposalData,
+                  status: proposalData.status || 'active'
+                }}
+                onClose={() => setShowMembershipModal(false)}
+              />
             )}
           </div>
         </div>

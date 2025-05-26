@@ -95,12 +95,17 @@ export default function ProposalDetailModal({ proposal, onClose }) {
                 </div>
 
                 {/* Payment Button */}
-                <button
-                  onClick={() => router.push('/payments')}
-                  className="w-full px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium shadow-sm hover:shadow-md"
-                >
-                  My Payments
-                </button>
+                {proposal.status === 'active' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/checkout/${proposal.id}`);
+                    }}
+                    className="w-full px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium shadow-sm hover:shadow-md"
+                  >
+                    Make Payment
+                  </button>
+                )}
               </div>
             </div>
           </div>

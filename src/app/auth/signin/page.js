@@ -87,9 +87,18 @@ function SignIn() {
         {/* Left: Illustration */}
         <div className="hidden md:flex items-center justify-center w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-12">
           <div className="text-center text-gray-600">
-            <h1 className="text-6xl font-bold mb-4 uppercase">KUMUSHA
+            <div className="flex justify-center mb-6">
+              <Image 
+                src="/images/logo.png" 
+                alt="Kumusha Logo" 
+                width={150} 
+                height={100}
+                className="rounded-full" 
+              />
+            </div>
+            <h1 className="text-6xl font-bold mb-4 uppercase">
               <p className="text-sm font-thin">Investor Portal</p> </h1>
-            <p className="text-gray-600">Join our community and start your journey today</p>
+            <p className="text-gray-600 text-sm capitalize">Join our community and start your journey today</p>
           </div>
         </div>
         {/* Right: Form */}
