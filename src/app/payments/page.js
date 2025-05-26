@@ -20,6 +20,7 @@ function Portfolio() {
     const [sortDirection, setSortDirection] = useState('desc');
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedInvestment, setSelectedInvestment] = useState('all');
 
     useEffect(() => {
         async function fetchData() {
@@ -81,50 +82,30 @@ function Portfolio() {
         return sortDirection === 'asc' ? '↑' : '↓';
     };
 
-    const sortedTransactions = [...transactions].sort((a, b) => {
-        let aValue, bValue;
-        if (sortKey === 'proposal') {
-            aValue = getProposalTitle(a.metadata?.proposal_id).toLowerCase();
-            bValue = getProposalTitle(b.metadata?.proposal_id).toLowerCase();
-        } else if (sortKey === 'amount') {
-            aValue = a.amount;
-            bValue = b.amount;
-        } else if (sortKey === 'status') {
-            aValue = a.status;
-            bValue = b.status;
-        } else if (sortKey === 'created_at') {
-            aValue = new Date(a.created_at);
-            bValue = new Date(b.created_at);
-        } else {
-            aValue = a[sortKey];
-            bValue = b[sortKey];
-        }
-        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-    });
-
-    // Pagination logic (now uses sortedTransactions)
-    const totalPages = Math.ceil(sortedTransactions.length / itemsPerPage);
-    const paginatedTransactions = sortedTransactions.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
-
     // Calculate total amount by proposal
     const amountByProposal = proposals.map(proposal => {
         const total = transactions
             .filter(tx => tx.metadata?.proposal_id === proposal.id)
             .reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
-        return { title: proposal.title, total };
+        return { id: proposal.id, title: proposal.title, total };
     }).filter(item => item.total > 0);
 
+    // Filter transactions based on selected investment
+    const filteredTransactions = selectedInvestment === 'all' 
+        ? transactions 
+        : transactions.filter(tx => tx.metadata?.proposal_id === selectedInvestment);
+
+    // Filter chart data based on selected investment
+    const filteredChartData = selectedInvestment === 'all'
+        ? amountByProposal
+        : amountByProposal.filter(item => item.id === selectedInvestment);
+
     const chartData = {
-        labels: amountByProposal.map(item => item.title),
+        labels: filteredChartData.map(item => item.title),
         datasets: [
             {
                 label: 'Total Amount',
-                data: amountByProposal.map(item => item.total),
+                data: filteredChartData.map(item => item.total),
                 backgroundColor: 'rgba(59, 130, 246, 0.7)',
                 borderColor: 'rgba(59, 130, 246, 1)',
                 borderWidth: 1,
@@ -154,6 +135,37 @@ function Portfolio() {
         }
     };
 
+    // Update the sortedTransactions to use filteredTransactions
+    const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+        let aValue, bValue;
+        if (sortKey === 'proposal') {
+            aValue = getProposalTitle(a.metadata?.proposal_id).toLowerCase();
+            bValue = getProposalTitle(b.metadata?.proposal_id).toLowerCase();
+        } else if (sortKey === 'amount') {
+            aValue = a.amount;
+            bValue = b.amount;
+        } else if (sortKey === 'status') {
+            aValue = a.status;
+            bValue = b.status;
+        } else if (sortKey === 'created_at') {
+            aValue = new Date(a.created_at);
+            bValue = new Date(b.created_at);
+        } else {
+            aValue = a[sortKey];
+            bValue = b[sortKey];
+        }
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    // Pagination logic (now uses sortedTransactions)
+    const totalPages = Math.ceil(sortedTransactions.length / itemsPerPage);
+    const paginatedTransactions = sortedTransactions.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
     if (error) {
         return (
             <Admin>
@@ -170,6 +182,36 @@ function Portfolio() {
         <Admin>
             <div className="p-6">
                 <h1 className="text-2xl font-bold mb-6">My Payments</h1>
+                {/* Investment Filter Dropdown */}
+                <div className="mb-6 relative max-w-xs">
+                    <label htmlFor="investment-filter" className="block text-sm font-medium text-gray-700 mb-2">
+                        Filter by Investment
+                    </label>
+                    <div className="relative">
+                        <select
+                            id="investment-filter"
+                            value={selectedInvestment}
+                            onChange={(e) => {
+                                setSelectedInvestment(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="appearance-none block w-full pl-4 pr-10 py-2.5 text-base border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ease-in-out hover:border-blue-400 cursor-pointer"
+                        >
+                            <option value="all" className="py-2">All Investments</option>
+                            {amountByProposal.map((proposal) => (
+                                <option key={proposal.id} value={proposal.id} className="py-2">
+                                    {proposal.title}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <svg className="h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-blue-500 to-blue-300 transform scale-x-0 transition-transform duration-300 ease-out group-hover:scale-x-100"></div>
+                </div>
                 {/* Chart Section */}
                 <div className="mb-8 bg-white rounded-lg shadow p-6">
                     <h2 className="text-lg font-semibold mb-4">Total Amount by Investment</h2>
