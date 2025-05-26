@@ -83,9 +83,9 @@ function SignIn() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
-      <div className="flex w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden">
+      <div className="flex flex-col md:flex-row w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Left: Illustration */}
-        <div className="hidden md:flex items-center justify-center w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-12">
+        <div className="w-full md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-12">
           <div className="text-center text-gray-600">
             <div className="flex justify-center mb-6">
               <Image 
@@ -93,6 +93,7 @@ function SignIn() {
                 alt="Kumusha Logo" 
                 width={150} 
                 height={100}
+                priority
                 className="rounded-full object-contain" 
               />
             </div>
@@ -107,9 +108,6 @@ function SignIn() {
             <h2 className="text-3xl font-bold text-gray-800">
               {isSignUp ? 'Create an Account' : 'Sign In'}
             </h2>
-            <p className="text-gray-600 mt-2">
-              {isSignUp ? 'Join us today' : 'Welcome back'}
-            </p>
           </div>
 
           {error && (
