@@ -93,7 +93,7 @@ function SignIn() {
                 alt="Kumusha Logo" 
                 width={150} 
                 height={100}
-                className="rounded-full" 
+                className="rounded-full object-contain" 
               />
             </div>
             <h1 className="text-6xl font-bold mb-4 uppercase">

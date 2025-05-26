@@ -120,51 +120,64 @@ export default function ProposalList({ showInvestButton = true, category = null,
     const fetchProposals = async () => {
       try {
         setLoading(true);
+        // 1. Fetch proposals
         let query = supabase
           .from('proposals')
-          .select(`
-            *,
-            investments (
-              amount,
-              investor_id
-            )
-          `)
+          .select('*')
           .eq('status', 'active');
 
         if (category) {
           query = query.eq('category', category);
         }
 
-        const { data, error } = await query;
-
-        if (error) {
-          console.error('Error fetching proposals:', error);
+        const { data: proposals, error: proposalsError } = await query;
+        if (proposalsError) {
+          console.error('Error fetching proposals:', proposalsError);
           return;
         }
 
-        let filteredProposals = data;
-
-        // Filter for user's investments if requested
-        if (showOnlyInvested && userId) {
-          filteredProposals = filteredProposals.filter(proposal => 
-            proposal.investments.some(inv => 
-              inv.investor_id === userId && inv.amount > 0
-            )
-          );
+        // 2. Fetch all successful transactions for these proposals
+        const proposalIds = proposals.map(p => p.id);
+        let transactions = [];
+        if (proposalIds.length > 0) {
+          const { data: txs, error: txError } = await supabase
+            .from('transactions')
+            .select('amount, metadata')
+            .eq('status', 'succeeded')
+            .in('metadata->>proposal_id', proposalIds);
+          if (txError) {
+            console.error('Error fetching transactions:', txError);
+          } else {
+            transactions = txs;
+          }
         }
 
-        // Calculate total raised for each proposal
-        const proposalsWithStats = filteredProposals.map(proposal => {
-          const totalRaised = proposal.investments.reduce((sum, inv) => sum + inv.amount, 0);
-          const investorCount = new Set(proposal.investments.map(inv => inv.investor_id)).size;
+        // 3. Aggregate transactions by proposal
+        const proposalStats = proposals.map(proposal => {
+          const txsForProposal = transactions.filter(
+            tx => tx.metadata?.proposal_id === proposal.id
+          );
+          const totalRaised = txsForProposal.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+          const investorCount = new Set(txsForProposal.map(tx => tx.metadata?.investor_id)).size;
           return {
             ...proposal,
-            total_raised: totalRaised,
+            amount_raised: totalRaised,
             investor_count: investorCount
           };
         });
 
-        setProposals(proposalsWithStats);
+        let filteredProposals = proposalStats;
+
+        // 4. Filter for user's investments if requested
+        if (showOnlyInvested && userId) {
+          filteredProposals = proposalStats.filter(proposal =>
+            transactions.some(
+              tx => tx.metadata?.proposal_id === proposal.id && tx.metadata?.investor_id === userId && Number(tx.amount) > 0
+            )
+          );
+        }
+
+        setProposals(filteredProposals);
       } catch (error) {
         console.error('Error:', error);
       } finally {
@@ -188,26 +201,28 @@ export default function ProposalList({ showInvestButton = true, category = null,
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-      
       if (user) {
-        // Check if user has any payments
+        // Check if user has any payments (transactions)
         const { data: transactions } = await supabase
           .from('transactions')
           .select('id')
           .eq('metadata->>investor_id', user.id)
+          .eq('status', 'succeeded')
           .limit(1);
-        
         setHasAnyPayments(transactions && transactions.length > 0);
-
-        // Check if user has already paid for membership
-        const { data: investments } = await supabase
-          .from('investments')
-          .select('*')
-          .eq('investor_id', user.id)
-          .eq('status', 'COMPLETED')
-          .eq('proposal_id', proposals.find(p => p.category === 'MEMBERSHIP')?.id);
-        
-        setHasMembershipPayment(investments && investments.length > 0);
+        // Check if user has already paid for membership (transactions for membership proposals)
+        const { data: membershipProposals } = await supabase
+          .from('proposals')
+          .select('id')
+          .eq('category', 'MEMBERSHIP');
+        const membershipProposalIds = (membershipProposals || []).map(p => p.id);
+        const { data: membershipTxs } = await supabase
+          .from('transactions')
+          .select('id, metadata')
+          .eq('status', 'succeeded')
+          .eq('metadata->>investor_id', user.id)
+          .in('metadata->>proposal_id', membershipProposalIds);
+        setHasMembershipPayment(membershipTxs && membershipTxs.length > 0);
       }
     };
     getUser();
@@ -238,41 +253,6 @@ export default function ProposalList({ showInvestButton = true, category = null,
 
       toast.info('Processing your investment...');
 
-      // Get user's profile for the investment record
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        throw new Error(`Failed to fetch user profile: ${profileError.message}`);
-      }
-
-      // Create investment record with schema-compliant fields
-      const { data: investment, error: investmentError } = await supabase
-        .from('investments')
-        .insert([
-          {
-            investor_id: user.id,
-            proposal_id: selectedInvestmentProposal.id,
-            amount: investmentData.amount,
-            status: 'PENDING',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ])
-        .select()
-        .single();
-
-      if (investmentError) {
-        console.error('Error creating investment:', investmentError);
-        throw new Error(`Failed to create investment record: ${investmentError.message}`);
-      }
-
-      toast.info('Creating payment intent...');
-
       // Create payment intent
       const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
@@ -282,8 +262,8 @@ export default function ProposalList({ showInvestButton = true, category = null,
         body: JSON.stringify({
           amount: investmentData.amount,
           proposalId: selectedInvestmentProposal.id,
-          investmentId: investment.id,
-          investorName: profile?.full_name || 'Anonymous Investor',
+          investmentId: investmentData.id,
+          investorName: investmentData.investorName,
         }),
       });
 
@@ -308,7 +288,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
           stripe_payment_intent_id: clientSecret,
           updated_at: new Date().toISOString()
         })
-        .eq('id', investment.id);
+        .eq('id', investmentData.id);
 
       if (updateError) {
         console.error('Error updating investment:', updateError);

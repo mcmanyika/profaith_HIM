@@ -60,7 +60,6 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [selectedDocument, setSelectedDocument] = useState(null);
-  const [userInvestments, setUserInvestments] = useState([]);
   const [hasMembershipPayment, setHasMembershipPayment] = useState(false);
   const [showMembershipModal, setShowMembershipModal] = useState(false);
   const supabase = createClientComponentClient();
@@ -84,9 +83,11 @@ const Dashboard = () => {
   const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
+  const [userTransactions, setUserTransactions] = useState([]);
+  const [userInvestedProjects, setUserInvestedProjects] = useState([]);
 
   // Optimized user stats update function
-  const updateUserStats = useCallback(async (investments, selectedId) => {
+  const updateUserStats = useCallback(async (transactions, selectedId) => {
     if (!user || !selectedId) {
       setUserStats({
         totalInvestment: 0,
@@ -96,20 +97,14 @@ const Dashboard = () => {
       return;
     }
 
-    // Calculate totalInvestment and numberOfProjects from investments (all proposals)
+    // Calculate totalInvestment and numberOfProjects from transactions (all proposals)
     const stats = {
       totalInvestment: 0,
       numberOfProjects: 0,
       currentProjectInvestment: 0
     };
 
-    // Get all successful transactions
-    const { data: transactions, error: txError } = await supabase
-      .from('transactions')
-      .select('amount, metadata')
-      .eq('status', 'succeeded');
-
-    if (!txError && transactions) {
+    if (transactions) {
       // Calculate totalInvestment from transactions
       stats.totalInvestment = transactions
         .filter(tx => tx.metadata?.investor_id === user.id)
@@ -133,7 +128,7 @@ const Dashboard = () => {
     }
 
     setUserStats(stats);
-  }, [user, supabase]);
+  }, [user]);
 
   // Improved auth subscription handling
   useEffect(() => {
@@ -164,49 +159,6 @@ const Dashboard = () => {
       }
     };
   }, [supabase]);
-
-  // Improved user investments fetching
-  useEffect(() => {
-    const fetchUserInvestments = async () => {
-      if (!user) return;
-      
-      try {
-        setIsLoading(true);
-        const { data: investments, error } = await supabase
-          .from('investments')
-          .select(`amount, proposal_id, status, proposals ( id, title, category, budget, amount_raised )`)
-          .eq('investor_id', user.id)
-          .eq('status', 'COMPLETED');
-
-        if (error) {
-          throw error;
-        }
-
-        if (!investments) {
-          setUserInvestments([]);
-          return;
-        }
-
-        // Check if user has any membership payments
-        const hasMembership = investments.some(inv => 
-          inv.proposals?.category === 'MEMBERSHIP'
-        );
-        setHasMembershipPayment(hasMembership);
-
-        setUserInvestments(investments);
-        await updateUserStats(investments, selectedProjectId);
-      } catch (error) {
-        console.error('Error fetching user investments:', error);
-        setError(error.message);
-        setUserInvestments([]);
-        toast.error('Failed to fetch investments: ' + error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserInvestments();
-  }, [user, supabase, selectedProjectId, updateUserStats]);
 
   // Improved proposal data fetching
   useEffect(() => {
@@ -406,14 +358,13 @@ const Dashboard = () => {
 
   // Automatically select the first project in the selected category by default
   useEffect(() => {
-    const projectsInCategory = userInvestments
-      .map(inv => inv.proposals)
+    const projectsInCategory = userInvestedProjects
       .filter(proj => proj && proj.category === selectedTab);
 
     if (projectsInCategory.length > 0 && !selectedProjectId) {
       setSelectedProjectId(projectsInCategory[0].id);
     }
-  }, [userInvestments, selectedTab, selectedProjectId]);
+  }, [userInvestedProjects, selectedTab, selectedProjectId]);
 
   // Improved project selection handling
   const handleProjectSelect = (project) => {
@@ -449,21 +400,66 @@ const Dashboard = () => {
     }
   }, [proposalData?.amount_raised, userStats.currentProjectInvestment]);
 
-  // Helper to get userInvestedProjects with error handling
-  const userInvestedProjects = useMemo(() => {
-    try {
-      return userInvestments
-        .map(inv => inv.proposals)
-        .filter((proj, idx, arr) => 
-          proj && 
-          arr.findIndex(p => p.id === proj.id) === idx && 
-          proj.category === selectedTab
+  // Fetch user transactions and invested projects from transactions table
+  useEffect(() => {
+    const fetchUserTransactionsAndProjects = async () => {
+      if (!user) return;
+      try {
+        setIsLoading(true);
+        // 1. Fetch all successful transactions for this user
+        const { data: transactions, error: txError } = await supabase
+          .from('transactions')
+          .select('amount, metadata')
+          .eq('status', 'succeeded');
+        if (txError) throw txError;
+        // 2. Filter for this user's transactions
+        const userTxs = (transactions || []).filter(
+          tx => tx.metadata?.investor_id === user.id
         );
-    } catch (error) {
-      console.error('Error calculating invested projects:', error);
-      return [];
-    }
-  }, [userInvestments, selectedTab]);
+        setUserTransactions(userTxs);
+        // 3. Extract unique proposal_ids
+        const uniqueProposalIds = [
+          ...new Set(userTxs.map(tx => tx.metadata?.proposal_id).filter(Boolean))
+        ];
+        // 4. Fetch proposals for these IDs
+        let proposals = [];
+        if (uniqueProposalIds.length > 0) {
+          const { data: proposalsData, error: proposalsError } = await supabase
+            .from('proposals')
+            .select('id, title, category, budget, amount_raised')
+            .in('id', uniqueProposalIds);
+          if (proposalsError) throw proposalsError;
+          proposals = proposalsData;
+        }
+        // 5. Filter by selectedTab
+        const filtered = proposals.filter(p => p.category === selectedTab);
+        setUserInvestedProjects(filtered);
+        // 6. Update userStats using only transactions
+        updateUserStats(userTxs, selectedProjectId);
+        // 7. Fetch all membership proposal IDs
+        const { data: membershipProposals, error: membershipError } = await supabase
+          .from('proposals')
+          .select('id')
+          .eq('category', 'MEMBERSHIP');
+        if (membershipError) throw membershipError;
+        const membershipProposalIds = (membershipProposals || []).map(p => p.id);
+        // 8. Set hasMembershipPayment if user has a transaction for any membership proposal
+        const hasMembership = userTxs.some(
+          tx => membershipProposalIds.includes(tx.metadata?.proposal_id)
+        );
+        setHasMembershipPayment(hasMembership);
+      } catch (error) {
+        console.error('Error fetching user invested projects:', error);
+        setUserInvestedProjects([]);
+        updateUserStats([], selectedProjectId);
+        setHasMembershipPayment(false);
+        toast.error('Failed to fetch invested projects: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUserTransactionsAndProjects();
+  }, [user, supabase, selectedTab, selectedProjectId, updateUserStats]);
 
   useEffect(() => {
     if (selectedTab) {

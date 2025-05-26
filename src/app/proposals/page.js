@@ -54,15 +54,15 @@ function Dashboard() {
             try {
                 const [
                     { data: proposals },
-                    { data: investments },
+                    { data: transactions },
                     { count: activeProposalCount },
                     { count: pendingProposalCount },
                     { count: totalProposalCount },
                     { data: updates },
                     { data: users }
                 ] = await Promise.all([
-                    supabase.from('proposals').select('budget, status'),
-                    supabase.from('investments').select('amount'),
+                    supabase.from('proposals').select('budget, status, id'),
+                    supabase.from('transactions').select('amount, metadata').eq('status', 'succeeded'),
                     supabase.from('proposals').select('*', { count: 'exact', head: true }).eq('status', 'active'),
                     supabase.from('proposals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
                     supabase.from('proposals').select('*', { count: 'exact', head: true }),
@@ -70,12 +70,15 @@ function Dashboard() {
                     supabase.from('profiles').select('*')
                 ]);
 
-                // Calculate investments by status
+                // Calculate investments by status (using proposal budgets as before)
                 const investmentsByStatus = proposals?.reduce((acc, proposal) => {
                     const status = proposal.status?.toLowerCase() || 'inactive';
                     acc[status] = (acc[status] || 0) + (proposal.budget || 0);
                     return acc;
                 }, { active: 0, pending: 0, inactive: 0 });
+
+                // Calculate investmentTotal from transactions
+                const investmentTotal = (transactions || []).reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
 
                 // Count users by gender (only Male and Female)
                 const genderCounts = {
@@ -85,7 +88,7 @@ function Dashboard() {
 
                 setDashboardData({
                     investmentsByStatus,
-                    investmentTotal: investments?.reduce((sum, inv) => sum + inv.amount, 0) || 0,
+                    investmentTotal,
                     activeProposals: activeProposalCount || 0,
                     pendingProposals: pendingProposalCount || 0,
                     totalProposals: totalProposalCount || 0,

@@ -62,38 +62,42 @@ export default function MembershipList({ showInvestButton = true, showOnlyInvest
     const fetchProposals = async () => {
       try {
         setLoading(true);
+        // 1. Fetch membership proposals
         let query = supabase
           .from('proposals')
-          .select(`
-            *,
-            investments (
-              amount,
-              investor_id
-            )
-          `)
+          .select('*')
           .eq('status', 'active')
           .ilike('title', '%membership%');
 
-        const { data, error } = await query;
-
-        if (error) {
-          console.error('Error fetching proposals:', error);
+        const { data: proposals, error: proposalsError } = await query;
+        if (proposalsError) {
+          console.error('Error fetching proposals:', proposalsError);
           return;
         }
 
-        let filteredProposals = data;
-
-        if (showOnlyInvested && userId) {
-          filteredProposals = data.filter(proposal => 
-            proposal.investments.some(inv => 
-              inv.investor_id === userId && inv.amount > 0
-            )
-          );
+        // 2. Fetch all successful transactions for these proposals
+        const proposalIds = proposals.map(p => p.id);
+        let transactions = [];
+        if (proposalIds.length > 0) {
+          const { data: txs, error: txError } = await supabase
+            .from('transactions')
+            .select('amount, metadata')
+            .eq('status', 'succeeded')
+            .in('metadata->>proposal_id', proposalIds);
+          if (txError) {
+            console.error('Error fetching transactions:', txError);
+          } else {
+            transactions = txs;
+          }
         }
 
-        const proposalsWithStats = filteredProposals.map(proposal => {
-          const totalRaised = proposal.investments.reduce((sum, inv) => sum + inv.amount, 0);
-          const investorCount = new Set(proposal.investments.map(inv => inv.investor_id)).size;
+        // 3. Aggregate transactions by proposal
+        const proposalStats = proposals.map(proposal => {
+          const txsForProposal = transactions.filter(
+            tx => tx.metadata?.proposal_id === proposal.id
+          );
+          const totalRaised = txsForProposal.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+          const investorCount = new Set(txsForProposal.map(tx => tx.metadata?.investor_id)).size;
           return {
             ...proposal,
             total_raised: totalRaised,
@@ -101,7 +105,18 @@ export default function MembershipList({ showInvestButton = true, showOnlyInvest
           };
         });
 
-        setProposals(proposalsWithStats);
+        let filteredProposals = proposalStats;
+
+        // 4. Filter for user's investments if requested
+        if (showOnlyInvested && userId) {
+          filteredProposals = proposalStats.filter(proposal =>
+            transactions.some(
+              tx => tx.metadata?.proposal_id === proposal.id && tx.metadata?.investor_id === userId && Number(tx.amount) > 0
+            )
+          );
+        }
+
+        setProposals(filteredProposals);
       } catch (error) {
         console.error('Error:', error);
       } finally {
@@ -165,26 +180,6 @@ export default function MembershipList({ showInvestButton = true, showOnlyInvest
         throw new Error(`Failed to fetch user profile: ${profileError.message}`);
       }
 
-      const { data: investment, error: investmentError } = await supabase
-        .from('investments')
-        .insert([
-          {
-            investor_id: user.id,
-            proposal_id: selectedInvestmentProposal.id,
-            amount: investmentData.amount,
-            status: 'PENDING',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ])
-        .select()
-        .single();
-
-      if (investmentError) {
-        console.error('Error creating investment:', investmentError);
-        throw new Error(`Failed to create investment record: ${investmentError.message}`);
-      }
-
       toast.info('Creating payment intent...');
 
       const response = await fetch('/api/create-payment-intent', {
@@ -195,7 +190,6 @@ export default function MembershipList({ showInvestButton = true, showOnlyInvest
         body: JSON.stringify({
           amount: investmentData.amount,
           proposalId: selectedInvestmentProposal.id,
-          investmentId: investment.id,
           investorName: profile?.full_name || 'Anonymous Investor',
         }),
       });
@@ -220,7 +214,7 @@ export default function MembershipList({ showInvestButton = true, showOnlyInvest
           stripe_payment_intent_id: clientSecret,
           updated_at: new Date().toISOString()
         })
-        .eq('id', investment.id);
+        .eq('id', selectedInvestmentProposal.id);
 
       if (updateError) {
         console.error('Error updating investment:', updateError);
