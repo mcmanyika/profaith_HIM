@@ -169,7 +169,7 @@ function Portfolio() {
     return (
         <Admin>
             <div className="p-6">
-                <h1 className="text-2xl font-bold mb-6">My Transactions</h1>
+                <h1 className="text-2xl font-bold mb-6">My Payments</h1>
                 {/* Chart Section */}
                 <div className="mb-8 bg-white rounded-lg shadow p-6">
                     <h2 className="text-lg font-semibold mb-4">Total Amount by Investment</h2>
