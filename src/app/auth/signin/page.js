@@ -15,6 +15,8 @@ function SignIn() {
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState(null)
   const [showVerifyEmailMessage, setShowVerifyEmailMessage] = useState(false)
+  const [logoUrl, setLogoUrl] = useState(null)
+  const [isLogoLoading, setIsLogoLoading] = useState(true)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -44,7 +46,21 @@ function SignIn() {
       }
     )
 
+    const getLogoUrl = async () => {
+      try {
+        const { data } = await supabase.storage
+          .from('images')
+          .getPublicUrl('logo.png')
+        setLogoUrl(data.publicUrl)
+      } catch (error) {
+        console.error('Error loading logo:', error)
+      } finally {
+        setIsLogoLoading(false)
+      }
+    }
+
     checkUser()
+    getLogoUrl()
     return () => subscription.unsubscribe()
   }, [router, supabase])
 
@@ -88,14 +104,16 @@ function SignIn() {
         <div className="w-full md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-12">
           <div className="text-center text-gray-600">
             <div className="flex justify-center mb-6">
-              <Image 
-                src="/images/logo.png" 
-                alt="Kumusha Logo" 
-                width={150} 
-                height={100}
-                priority
-                className="rounded-full object-contain" 
-              />
+              {!isLogoLoading && logoUrl && (
+                <Image 
+                  src='https://sdlrxbcshhjhuaqoidzh.supabase.co/storage/v1/object/sign/images/logo.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InN0b3JhZ2UtdXJsLXNpZ25pbmcta2V5X2ZiMTA0MWNmLWRlYmUtNGZlZC04YWQ3LWFhMTk2ZDJiN2Q0YSJ9.eyJ1cmwiOiJpbWFnZXMvbG9nby5wbmciLCJpYXQiOjE3NDgyOTU5NDIsImV4cCI6MTc3OTgzMTk0Mn0.PrAZirdh2PHAE1kRugs0qaE3Kr4EepikopYGp6odjmc'
+                  alt="Kumusha Logo" 
+                  width={150} 
+                  height={100}
+                  priority
+                  className="rounded-full object-contain" 
+                />
+              )}
             </div>
             <h1 className="text-6xl font-bold mb-4 uppercase">
               <p className="text-sm font-thin">Investor Portal</p> </h1>
