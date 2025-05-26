@@ -404,7 +404,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
                 </div>
 
                 {/* View My Payments Button */}
-                {showInvestButton && proposal.status === 'active' && !hasMembershipPayment && hasAnyPayments && (
+                {showInvestButton && proposal.status === 'active' && (
                   <div className="mb-6 flex justify-end">
                     <button
                       onClick={(e) => {

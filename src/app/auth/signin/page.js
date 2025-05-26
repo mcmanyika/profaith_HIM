@@ -106,7 +106,7 @@ function SignIn() {
             <div className="flex justify-center mb-6">
               {!isLogoLoading && logoUrl && (
                 <Image 
-                  src='https://sdlrxbcshhjhuaqoidzh.supabase.co/storage/v1/object/sign/images/logo.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InN0b3JhZ2UtdXJsLXNpZ25pbmcta2V5X2ZiMTA0MWNmLWRlYmUtNGZlZC04YWQ3LWFhMTk2ZDJiN2Q0YSJ9.eyJ1cmwiOiJpbWFnZXMvbG9nby5wbmciLCJpYXQiOjE3NDgyOTU5NDIsImV4cCI6MTc3OTgzMTk0Mn0.PrAZirdh2PHAE1kRugs0qaE3Kr4EepikopYGp6odjmc'
+                  src='https://sdlrxbcshhjhuaqoidzh.supabase.co/storage/v1/object/sign/images/logo.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InN0b3JhZ2UtdXJsLXNpZ25pbmcta2V5X2ZiMTA0MWNmLWRlYmUtNGZlZC04YWQ3LWFhMTk2ZDJiN2Q0YSJ9.eyJ1cmwiOiJpbWFnZXMvbG9nby5wbmciLCJpYXQiOjE3NDgyOTY0MjksImV4cCI6MTc3OTgzMjQyOX0.Ekkwjoh5kZeKErtiemlS09kkf57Dpvoard4uMwjmuUI'
                   alt="Kumusha Logo" 
                   width={150} 
                   height={100}
