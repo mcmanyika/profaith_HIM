@@ -86,8 +86,9 @@ function SignIn() {
       <div className="flex w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Left: Illustration */}
         <div className="hidden md:flex items-center justify-center w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-12">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-800 mb-4">Welcome Back</h1>
+          <div className="text-center text-gray-600">
+            <h1 className="text-6xl font-bold mb-4 uppercase">KUMUSHA
+              <p className="text-sm font-thin">Investor Portal</p> </h1>
             <p className="text-gray-600">Join our community and start your journey today</p>
           </div>
         </div>
