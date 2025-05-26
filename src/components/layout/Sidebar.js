@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react'
 
 const baseNavigation = [
   { name: 'Dashboard', href: '/account', icon: HomeIcon },
-  // { name: 'Portfolio', href: '/portfolio', icon: BriefcaseIcon },
+  { name: 'Payments', href: '/payments', icon: BriefcaseIcon },
   { name: 'My Profile', href: '/profile', icon: UserIcon },
   { name: 'Documents', href: '/documents', icon: DocumentTextIcon },
   { name: 'Latest Updates', href: '/youtube', icon: VideoCameraIcon },

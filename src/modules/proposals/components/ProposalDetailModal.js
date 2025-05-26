@@ -4,36 +4,26 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase/config';
 import { toast } from 'react-toastify';
 import LinearProgress from '@mui/material/LinearProgress';
+import { useRouter } from 'next/navigation';
 
 export default function ProposalDetailModal({ proposal, onClose }) {
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const router = useRouter();
 
   if (!proposal) return null;
 
   return (
     <AnimatePresence>
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-50"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
-        }}
+        className="fixed inset-0 z-50"
+        onClick={onClose}
       >
         <motion.div 
-          className="fixed inset-y-0 right-0 w-1/2 min-h-screen bg-white shadow-xl overflow-y-auto"
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
-          style={{ width: windowWidth > 600 ? '50%' : '100%' }}
-            onClick={e => e.stopPropagation()}
+          className="fixed bottom-0 left-0 right-0 bg-white rounded-t-lg shadow-xl max-h-[90vh] overflow-y-auto"
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          onClick={e => e.stopPropagation()}
         >
           <div className="p-6">
             {/* Header Section */}
@@ -61,7 +51,7 @@ export default function ProposalDetailModal({ proposal, onClose }) {
               </span>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 mt-6">
               {/* Main Content */}
               <div className="grid gap-6">
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -103,6 +93,14 @@ export default function ProposalDetailModal({ proposal, onClose }) {
                     </div>
                   </div>
                 </div>
+
+                {/* Payment Button */}
+                <button
+                  onClick={() => router.push('/payments')}
+                  className="w-full px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium shadow-sm hover:shadow-md"
+                >
+                  Go to Payments
+                </button>
               </div>
             </div>
           </div>
