@@ -183,7 +183,7 @@ function Portfolio() {
             <div className="p-6">
                 <h1 className="text-2xl font-bold mb-6">My Payments</h1>
                 {/* Investment Filter Dropdown */}
-                <div className="mb-6 relative max-w-xs">
+                <div className="mb-6 relative w-full md:max-w-xs">
                     <label htmlFor="investment-filter" className="block text-sm font-medium text-gray-700 mb-2">
                         Filter by Investment
                     </label>
