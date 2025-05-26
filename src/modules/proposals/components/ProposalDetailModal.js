@@ -99,7 +99,7 @@ export default function ProposalDetailModal({ proposal, onClose }) {
                   onClick={() => router.push('/payments')}
                   className="w-full px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium shadow-sm hover:shadow-md"
                 >
-                  Go to Payments
+                  My Payments
                 </button>
               </div>
             </div>
