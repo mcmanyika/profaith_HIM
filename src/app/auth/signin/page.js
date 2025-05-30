@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Image from 'next/image'
@@ -10,6 +10,9 @@ import { incrementLoginAttempts, resetLoginAttempts, isAccountLocked, getLoginAt
 import AccountLockoutMessage from '../../../components/AccountLockoutMessage'
 import { sendLockoutNotification } from '../../../utils/emailNotifications'
 import Link from 'next/link'
+import { sessionManager } from '../../../utils/sessionManager'
+import { mfaManager } from '../../../utils/mfaManager'
+import { loginMonitor } from '../../../utils/loginMonitor'
 
 function SignIn() {
   const supabase = createClientComponentClient()
@@ -26,6 +29,48 @@ function SignIn() {
   const [passwordErrors, setPasswordErrors] = useState([])
   const [showPassword, setShowPassword] = useState(false)
   const [remainingAttempts, setRemainingAttempts] = useState(3)
+  const [lastActivity, setLastActivity] = useState(Date.now())
+  const SESSION_TIMEOUT = 30 * 60 * 1000 // 30 minutes in milliseconds
+  const ACTIVITY_CHECK_INTERVAL = 60 * 1000 // 1 minute in milliseconds
+  const [requiresMFA, setRequiresMFA] = useState(false)
+  const [mfaFactorId, setMfaFactorId] = useState(null)
+
+  // Track user activity
+  const updateLastActivity = useCallback(() => {
+    setLastActivity(Date.now())
+  }, [])
+
+  // Check session timeout
+  const checkSessionTimeout = useCallback(async () => {
+    const currentTime = Date.now()
+    if (currentTime - lastActivity > SESSION_TIMEOUT) {
+      await supabase.auth.signOut()
+      router.push('/auth/signin?error=Session expired. Please sign in again.')
+    }
+  }, [lastActivity, router, supabase])
+
+  // Set up activity listeners
+  useEffect(() => {
+    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart']
+    
+    const handleActivity = () => {
+      updateLastActivity()
+    }
+
+    activityEvents.forEach(event => {
+      window.addEventListener(event, handleActivity)
+    })
+
+    // Set up periodic session check
+    const sessionCheckInterval = setInterval(checkSessionTimeout, ACTIVITY_CHECK_INTERVAL)
+
+    return () => {
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, handleActivity)
+      })
+      clearInterval(sessionCheckInterval)
+    }
+  }, [updateLastActivity, checkSessionTimeout])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -47,9 +92,13 @@ function SignIn() {
               id: user.id,
               full_name: fullName,
               email: user.email,
+              last_login: new Date().toISOString(),
+              session_id: session.id
             })
           }
 
+          // Initialize session management after successful login
+          sessionManager.initialize()
           router.replace('/account')
         }
       }
@@ -95,44 +144,99 @@ function SignIn() {
       return
     }
 
-    if (isSignUp) {
-      const { isValid, errors } = validatePassword(password)
-      if (!isValid) {
-        setPasswordErrors(errors)
-        return
-      }
+    try {
+      if (isSignUp) {
+        const { isValid, errors } = validatePassword(password)
+        if (!isValid) {
+          setPasswordErrors(errors)
+          return
+        }
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            },
+            emailRedirectTo: `${window.location.origin}/auth/callback`
           },
-        },
-      })
-      if (error) setError(error.message)
-      else {
+        })
+        if (error) throw error
         setShowVerifyEmailMessage(true)
         setEmail('')
         setPassword('')
         setFullName('')
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        const attempts = incrementLoginAttempts()
-        setRemainingAttempts(Math.max(0, 3 - attempts))
-        
-        // If this was the last attempt, send lockout notification
-        if (attempts >= 3) {
-          await sendLockoutNotification(email)
-        }
-        
-        setError(`${error.message} (${remainingAttempts} attempts remaining)`)
       } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ 
+          email, 
+          password,
+          options: {
+            expiresIn: 30 * 60 * 1000 // 30 minutes
+          }
+        })
+
+        // Log login attempt
+        await loginMonitor.logLoginAttempt(email, !error, {
+          ip: window.location.hostname, // In production, you'd get this from the server
+          userAgent: navigator.userAgent,
+          location: 'Unknown' // In production, you'd get this from IP geolocation
+        })
+
+        if (error) {
+          const attempts = incrementLoginAttempts()
+          setRemainingAttempts(Math.max(0, 3 - attempts))
+          
+          if (attempts >= 3) {
+            await sendLockoutNotification(email)
+          }
+          
+          throw error
+        }
+
+        // Check if MFA is required
+        if (data.session) {
+          const { success, data: mfaData } = await mfaManager.getMFAFactors()
+          if (success && mfaData.totp) {
+            setRequiresMFA(true)
+            setMfaFactorId(mfaData.totp.id)
+            return
+          }
+        }
+
         resetLoginAttempts()
+        router.push('/account')
       }
+    } catch (error) {
+      setError(error.message)
+    }
+  }
+
+  const handleMFAVerify = async (code) => {
+    if (!mfaFactorId) {
+      setError('MFA setup error. Please try again.')
+      return
+    }
+
+    try {
+      const { success, error } = await mfaManager.verifyMFA(mfaFactorId, code)
+      
+      // Log MFA verification attempt
+      await loginMonitor.logLoginAttempt(email, success, {
+        ip: window.location.hostname,
+        userAgent: navigator.userAgent,
+        location: 'Unknown',
+        mfa: true
+      })
+
+      if (success) {
+        resetLoginAttempts()
+        router.push('/account')
+      } else {
+        throw new Error(error || 'Failed to verify MFA code')
+      }
+    } catch (error) {
+      setError(error.message)
     }
   }
 
@@ -163,7 +267,7 @@ function SignIn() {
         <div className="w-full md:w-1/2 p-6 md:p-12 space-y-6">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-800">
-              {isSignUp ? 'Create an Account' : 'Sign In'}
+              {requiresMFA ? 'Two-Factor Authentication' : (isSignUp ? 'Create an Account' : 'Sign In')}
             </h2>
           </div>
 
@@ -183,100 +287,129 @@ function SignIn() {
             </div>
           )}
 
-          <div className="space-y-4">
-            {isSignUp && (
+          {requiresMFA ? (
+            <div className="space-y-4">
+              <p className="text-gray-600 text-center">
+                Please enter the 6-digit code from your authenticator app
+              </p>
               <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
                 <input
-                  id="fullName"
                   type="text"
-                  placeholder="Enter your full name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                  maxLength={6}
+                  onChange={(e) => {
+                    const code = e.target.value.replace(/\D/g, '')
+                    if (code.length === 6) {
+                      handleMFAVerify(code)
+                    }
+                  }}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition text-center text-2xl tracking-widest"
+                  placeholder="000000"
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
               </div>
-            )}
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
-              />
             </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
-              </div>
-              {isSignUp && password && (
-                <>
-                  <PasswordStrengthIndicator password={password} />
-                  {passwordErrors.length > 0 && (
-                    <div className="mt-2 text-sm text-red-600">
-                      <ul className="list-disc pl-5">
-                        {passwordErrors.map((error, index) => (
-                          <li key={index}>{error}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </>
-              )}
-              {!isSignUp && (
-                <div className="text-right mt-1">
-                  <Link
-                    href="/auth/forgot-password"
-                    className="text-sm text-gray-600 hover:text-black transition duration-200"
-                  >
-                    Forgot Password?
-                  </Link>
+          ) : (
+            <div className="space-y-4">
+              {isSignUp && (
+                <div>
+                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    id="fullName"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                  />
                 </div>
               )}
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                {isSignUp && password && (
+                  <>
+                    <PasswordStrengthIndicator password={password} />
+                    {passwordErrors.length > 0 && (
+                      <div className="mt-2 text-sm text-red-600">
+                        <ul className="list-disc pl-5">
+                          {passwordErrors.map((error, index) => (
+                            <li key={index}>{error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                )}
+                {!isSignUp && (
+                  <div className="text-right mt-1">
+                    <Link
+                      href="/auth/forgot-password"
+                      className="text-sm text-gray-600 hover:text-black transition duration-200"
+                    >
+                      Forgot Password?
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
-          <button
-            onClick={handleSubmit}
-            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200 font-medium text-sm"
-          >
-            {isSignUp ? 'Create Account' : 'Sign In'}
-          </button>
+          {!requiresMFA && (
+            <>
+              <button
+                onClick={handleSubmit}
+                className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200 font-medium text-sm"
+              >
+                {isSignUp ? 'Create Account' : 'Sign In'}
+              </button>
 
-          <div className="text-center">
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-gray-600 hover:text-black transition duration-200"
-            >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-            </button>
-          </div>
+              <div className="text-center">
+                <button
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="text-sm text-gray-600 hover:text-black transition duration-200"
+                >
+                  {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

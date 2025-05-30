@@ -12,6 +12,7 @@ import Image from 'next/image';
 import MembershipList from "../../modules/proposals/components/MembershipList";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import AuthLayout from '../../components/layout/AuthLayout'
 
 const CATEGORIES = [
   { name: "REAL ESTATE", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
@@ -470,7 +471,7 @@ const Dashboard = () => {
   if (!hasMounted) return null;
 
   return (
-    <Admin>
+    <AuthLayout>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4 sm:px-6 lg:px-8">
         <ToastContainer
           position="top-right"
@@ -802,7 +803,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-    </Admin>
+    </AuthLayout>
   );
 };
 

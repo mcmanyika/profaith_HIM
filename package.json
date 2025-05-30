@@ -16,6 +16,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@mui/icons-material": "^7.1.0",
     "@mui/material": "^7.0.2",
+    "@sendgrid/mail": "^8.1.5",
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^7.3.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
