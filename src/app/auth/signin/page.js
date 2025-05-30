@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Image from 'next/image'
+import { validatePassword } from '../../../utils/passwordValidation'
+import PasswordStrengthIndicator from '../../../components/PasswordStrengthIndicator'
+import { incrementLoginAttempts, resetLoginAttempts, isAccountLocked, getLoginAttempts } from '../../../utils/loginAttempts'
+import AccountLockoutMessage from '../../../components/AccountLockoutMessage'
+import { sendLockoutNotification } from '../../../utils/emailNotifications'
+import Link from 'next/link'
 
 function SignIn() {
   const supabase = createClientComponentClient()
@@ -17,6 +23,9 @@ function SignIn() {
   const [showVerifyEmailMessage, setShowVerifyEmailMessage] = useState(false)
   const [logoUrl, setLogoUrl] = useState(null)
   const [isLogoLoading, setIsLogoLoading] = useState(true)
+  const [passwordErrors, setPasswordErrors] = useState([])
+  const [showPassword, setShowPassword] = useState(false)
+  const [remainingAttempts, setRemainingAttempts] = useState(3)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -59,20 +68,40 @@ function SignIn() {
       }
     }
 
+    const checkLockout = () => {
+      const { attempts } = getLoginAttempts()
+      setRemainingAttempts(Math.max(0, 3 - attempts))
+    }
+
     checkUser()
     getLogoUrl()
+    checkLockout()
     return () => subscription.unsubscribe()
   }, [router, supabase])
 
   const handleSubmit = async () => {
     setError(null)
+    setPasswordErrors([])
 
     if (!email || !password || (isSignUp && !fullName)) {
       setError('Please fill in all required fields.')
       return
     }
 
+    // Check if account is locked
+    const { locked } = isAccountLocked()
+    if (locked) {
+      setError('Account is temporarily locked due to too many failed attempts.')
+      return
+    }
+
     if (isSignUp) {
+      const { isValid, errors } = validatePassword(password)
+      if (!isValid) {
+        setPasswordErrors(errors)
+        return
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -91,11 +120,21 @@ function SignIn() {
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setError(error.message)
+      if (error) {
+        const attempts = incrementLoginAttempts()
+        setRemainingAttempts(Math.max(0, 3 - attempts))
+        
+        // If this was the last attempt, send lockout notification
+        if (attempts >= 3) {
+          await sendLockoutNotification(email)
+        }
+        
+        setError(`${error.message} (${remainingAttempts} attempts remaining)`)
+      } else {
+        resetLoginAttempts()
+      }
     }
   }
-
-  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
@@ -127,6 +166,10 @@ function SignIn() {
               {isSignUp ? 'Create an Account' : 'Sign In'}
             </h2>
           </div>
+
+          {!isSignUp && email && (
+            <AccountLockoutMessage email={email} />
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
@@ -175,14 +218,47 @@ function SignIn() {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+              {isSignUp && password && (
+                <>
+                  <PasswordStrengthIndicator password={password} />
+                  {passwordErrors.length > 0 && (
+                    <div className="mt-2 text-sm text-red-600">
+                      <ul className="list-disc pl-5">
+                        {passwordErrors.map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+              {!isSignUp && (
+                <div className="text-right mt-1">
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm text-gray-600 hover:text-black transition duration-200"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
