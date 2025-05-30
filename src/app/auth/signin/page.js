@@ -30,9 +30,9 @@ function SignIn() {
   const [showPassword, setShowPassword] = useState(false)
   const [remainingAttempts, setRemainingAttempts] = useState(3)
   const [lastActivity, setLastActivity] = useState(Date.now())
-  const SESSION_TIMEOUT = 2 * 60 * 1000 // 2 minutes in milliseconds
+  const SESSION_TIMEOUT = 10 * 60 * 1000 // 10 minutes in milliseconds
   const ACTIVITY_CHECK_INTERVAL = 30 * 1000 // Check every 30 seconds
-  const WARNING_THRESHOLD = 30 * 1000 // Show warning 30 seconds before timeout
+  const WARNING_THRESHOLD = 1 * 60 * 1000 // Show warning 1 minute before timeout
   const [requiresMFA, setRequiresMFA] = useState(false)
   const [mfaFactorId, setMfaFactorId] = useState(null)
 
@@ -46,9 +46,9 @@ function SignIn() {
     const currentTime = Date.now()
     const timeUntilTimeout = SESSION_TIMEOUT - (currentTime - lastActivity)
     
-    // Show warning when 30 seconds remaining
+    // Show warning when 1 minute remaining
     if (timeUntilTimeout <= WARNING_THRESHOLD && timeUntilTimeout > 0) {
-      setError('Your session will expire in 30 seconds. Please save your work.')
+      setError('Your session will expire in 1 minute. Please save your work.')
     }
     
     if (currentTime - lastActivity > SESSION_TIMEOUT) {
@@ -180,7 +180,7 @@ function SignIn() {
           email, 
           password,
           options: {
-            expiresIn: 2 * 60 * 1000 // 2 minutes
+            expiresIn: 10 * 60 * 1000 // 10 minutes
           }
         })
 
