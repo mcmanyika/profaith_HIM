@@ -30,8 +30,9 @@ function SignIn() {
   const [showPassword, setShowPassword] = useState(false)
   const [remainingAttempts, setRemainingAttempts] = useState(3)
   const [lastActivity, setLastActivity] = useState(Date.now())
-  const SESSION_TIMEOUT = 30 * 60 * 1000 // 30 minutes in milliseconds
-  const ACTIVITY_CHECK_INTERVAL = 60 * 1000 // 1 minute in milliseconds
+  const SESSION_TIMEOUT = 2 * 60 * 1000 // 2 minutes in milliseconds
+  const ACTIVITY_CHECK_INTERVAL = 30 * 1000 // Check every 30 seconds
+  const WARNING_THRESHOLD = 30 * 1000 // Show warning 30 seconds before timeout
   const [requiresMFA, setRequiresMFA] = useState(false)
   const [mfaFactorId, setMfaFactorId] = useState(null)
 
@@ -43,9 +44,16 @@ function SignIn() {
   // Check session timeout
   const checkSessionTimeout = useCallback(async () => {
     const currentTime = Date.now()
+    const timeUntilTimeout = SESSION_TIMEOUT - (currentTime - lastActivity)
+    
+    // Show warning when 30 seconds remaining
+    if (timeUntilTimeout <= WARNING_THRESHOLD && timeUntilTimeout > 0) {
+      setError('Your session will expire in 30 seconds. Please save your work.')
+    }
+    
     if (currentTime - lastActivity > SESSION_TIMEOUT) {
       await supabase.auth.signOut()
-      router.push('/auth/signin?error=Session expired. Please sign in again.')
+      router.push('/auth/signin?error=Session expired due to inactivity. Please sign in again.')
     }
   }, [lastActivity, router, supabase])
 
@@ -172,7 +180,7 @@ function SignIn() {
           email, 
           password,
           options: {
-            expiresIn: 30 * 60 * 1000 // 30 minutes
+            expiresIn: 2 * 60 * 1000 // 2 minutes
           }
         })
 
