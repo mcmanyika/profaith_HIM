@@ -11,6 +11,8 @@ import { stripePromise } from '../../../lib/stripe/stripeClient';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import ProposalChatModal from '../../chat/components/ProposalChatModal';
+import { ChatService } from '../../chat/services/chatService';
 
 // Loading skeleton component
 const ProposalCardSkeleton = () => (
@@ -66,6 +68,22 @@ export default function ProposalList({ showInvestButton = true, category = null,
   const proposalsPerPage = 5;
   const supabase = createClientComponentClient();
   const router = useRouter();
+  const chatService = new ChatService();
+  const [chatModalOpen, setChatModalOpen] = useState(false);
+  const [chatModalChat, setChatModalChat] = useState(null);
+  const [chatModalLoadingId, setChatModalLoadingId] = useState(null);
+
+  // Add effect to handle body scroll lock
+  useEffect(() => {
+    if (chatModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [chatModalOpen]);
 
   // Format currency based on user's locale
   const formatCurrency = (amount, currency = 'USD') => {
@@ -326,6 +344,32 @@ export default function ProposalList({ showInvestButton = true, category = null,
     }
   };
 
+  const handleOpenProposalChat = async (proposal) => {
+    if (!user) {
+      toast.error('Please sign in to chat');
+      return;
+    }
+    setChatModalLoadingId(proposal.id);
+    try {
+      const participantIds = [user.id];
+      if (proposal.submittedBy?.id && proposal.submittedBy.id !== user.id) {
+        participantIds.push(proposal.submittedBy.id);
+      }
+      const chat = await chatService.getOrCreateProposalChat(proposal.id, participantIds);
+      if (chat) {
+        setChatModalChat(chat);
+        setChatModalOpen(true);
+      } else {
+        toast.error('Failed to open chat');
+      }
+    } catch (err) {
+      toast.error('Failed to open chat');
+      console.error(err);
+    } finally {
+      setChatModalLoadingId(null);
+    }
+  };
+
   if (loading) return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
       {[...Array(4)].map((_, index) => (
@@ -402,21 +446,42 @@ export default function ProposalList({ showInvestButton = true, category = null,
                     {proposal.title.charAt(0).toUpperCase() + proposal.title.slice(1).toLowerCase()}
                   </h3>
                 </div>
-
-                {/* View My Payments Button */}
-                {showInvestButton && proposal.status === 'active' && (
-                  <div className="mb-6 flex justify-end">
+                {/* Action Buttons */}
+                <div className="mb-6 flex justify-end space-x-2">
+                  {user && (
+                    <button
+                      onClick={e => { e.stopPropagation(); handleOpenProposalChat(proposal); }}
+                      className="p-3 text-blue-500 hover:text-blue-600 rounded-full hover:bg-blue-50 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-95"
+                      title="Chat about this proposal"
+                      disabled={chatModalLoadingId === proposal.id}
+                    >
+                      {chatModalLoadingId === proposal.id ? (
+                        <svg className="w-7 h-7 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                  {showInvestButton && proposal.status === 'active' && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push('/payments');
                       }}
-                      className="px-3 py-2 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-lg transition-colors duration-200 font-medium text-xs shadow-sm hover:opacity-90 hover:shadow-md"
+                      className="p-3 text-cyan-500 hover:text-cyan-600 rounded-full hover:bg-cyan-50 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-95"
+                      title="View my payments"
                     >
-                      View My Payments
+                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Budget and Raised Amount */}
                 <div className="space-y-6">
@@ -517,6 +582,22 @@ export default function ProposalList({ showInvestButton = true, category = null,
             onSubmit={handleInvestmentSubmit}
           />
         </Elements>
+      )}
+
+      {chatModalOpen && chatModalChat && user && (
+        <div className="">
+          <ProposalChatModal
+            chat={chatModalChat}
+            currentUser={{
+              id: user.id,
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
+              avatar_url: user.user_metadata?.avatar_url || null,
+              online_status: 'online',
+            }}
+            onClose={() => { setChatModalOpen(false); setChatModalChat(null); }}
+          />
+        </div>
       )}
     </div>
   );

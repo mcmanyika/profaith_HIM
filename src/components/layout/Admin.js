@@ -77,7 +77,7 @@ function Admin({ children }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex bg-gray-50">
       {/* Sidebar */}
       <aside className="group fixed md:static left-0 bottom-0 md:top-0 h-16 md:h-screen w-full md:w-16 hover:md:w-64 transition-all duration-300 ease-in-out bg-white  border-t md:border-r border-gray-200 dark:border-gray-700 p-4">
         <div className="hidden md:flex justify-around md:justify-center">
