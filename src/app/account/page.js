@@ -13,7 +13,7 @@ import MembershipList from "../../modules/proposals/components/MembershipList";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AuthLayout from '../../components/layout/AuthLayout'
-import ProposalChatModal from '../../modules/chat/components/ProposalChatModal';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const CATEGORIES = [
   { name: "REAL ESTATE", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
@@ -40,6 +40,20 @@ const MembershipModal = ({ onClose }) => (
   </div>
 );
 
+// Show totals by month: sum amount for all transactions in each month (not cumulative)
+function getMonthlyTotals(transactions) {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthlyTotals = Array(12).fill(0);
+  transactions.forEach(tx => {
+    if (!tx.created_at) return;
+    const date = new Date(tx.created_at);
+    if (isNaN(date)) return;
+    const month = date.getMonth();
+    monthlyTotals[month] += Number(tx.amount || 0);
+  });
+  return months.map((month, idx) => ({ month, value: monthlyTotals[idx] }));
+}
+
 const Dashboard = () => {
   const [selectedTab, setSelectedTab] = useState(() => {
     if (typeof window !== "undefined") {
@@ -64,8 +78,6 @@ const Dashboard = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [hasMembershipPayment, setHasMembershipPayment] = useState(false);
   const [showMembershipModal, setShowMembershipModal] = useState(false);
-  const [chatModalOpen, setChatModalOpen] = useState(false);
-  const [chatModalChat, setChatModalChat] = useState(null);
   const supabase = createClientComponentClient();
   const documentCategories = [
     { 
@@ -89,6 +101,9 @@ const Dashboard = () => {
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const [userTransactions, setUserTransactions] = useState([]);
   const [userInvestedProjects, setUserInvestedProjects] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [showAllMyInvestments, setShowAllMyInvestments] = useState(false);
+  const [categoryCounts, setCategoryCounts] = useState({});
 
   // Optimized user stats update function
   const updateUserStats = useCallback(async (transactions, selectedId) => {
@@ -471,6 +486,81 @@ const Dashboard = () => {
     }
   }, [selectedTab]);
 
+  // Fetch all succeeded transactions for the chart
+  useEffect(() => {
+    const fetchAllTransactions = async () => {
+      try {
+        const { data: transactions, error } = await supabase
+          .from('transactions')
+          .select('amount, metadata, created_at')
+          .eq('status', 'succeeded');
+        if (error) throw error;
+        setAllTransactions(transactions || []);
+      } catch (err) {
+        console.error('Error fetching all transactions:', err);
+        setAllTransactions([]);
+      }
+    };
+    fetchAllTransactions();
+  }, [supabase]);
+
+  // Use only the logged-in user's transactions for the Payments Overview chart
+  const paymentHistory = useMemo(() => {
+    if (!user) return [];
+    let filteredTxs = allTransactions.filter(tx => {
+      let metadata = tx.metadata;
+      if (typeof metadata === 'string') {
+        try { metadata = JSON.parse(metadata); } catch { return false; }
+      }
+      if (!metadata?.investor_id || metadata.investor_id !== user.id) return false;
+      if (!showAllMyInvestments && selectedProjectId) {
+        return metadata.proposal_id === selectedProjectId;
+      }
+      return true;
+    });
+    return getMonthlyTotals(filteredTxs);
+  }, [allTransactions, user, selectedProjectId, showAllMyInvestments]);
+
+  console.log('allTransactions', allTransactions);
+  console.log('paymentHistory', paymentHistory);
+  if (allTransactions && allTransactions.length > 0) {
+    console.log('Sample transaction', allTransactions[0]);
+  }
+
+  // Ownership share pie chart data
+  const ownershipPieData = useMemo(() => {
+    const userShare = userStats.currentProjectInvestment || 0;
+    const total = proposalData?.amount_raised || 0;
+    const rest = Math.max(total - userShare, 0);
+    return [
+      { name: 'Your Share', value: userShare },
+      { name: 'Others', value: rest },
+    ];
+  }, [userStats.currentProjectInvestment, proposalData?.amount_raised]);
+  const pieColors = ['#22c55e', '#e5e7eb'];
+
+  // Fetch project counts per category
+  useEffect(() => {
+    const fetchCategoryCounts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('proposals')
+          .select('category, id')
+          .eq('status', 'active');
+        if (error) throw error;
+        const counts = {};
+        (data || []).forEach(p => {
+          counts[p.category] = (counts[p.category] || 0) + 1;
+        });
+        setCategoryCounts(counts);
+      } catch (err) {
+        console.error('Error fetching category counts:', err);
+        setCategoryCounts({});
+      }
+    };
+    fetchCategoryCounts();
+  }, [supabase]);
+
   if (!hasMounted) return null;
 
   return (
@@ -520,6 +610,7 @@ const Dashboard = () => {
                         ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg"
                         : "bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg"
                     } ${isCategoryLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    style={{ overflow: 'visible' }}
                   >
                     {isCategoryLoading && selectedTab === tab.name ? (
                       <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -532,6 +623,11 @@ const Dashboard = () => {
                       </svg>
                     )}
                     <span>{tab.name}</span>
+                    {!!categoryCounts[tab.name] && (
+                      <span className="absolute -top-2 -right-2 bg-gradient-to-br from-orange-500 to-orange-600 text-white font-bold rounded-full shadow-lg flex items-center justify-center" style={{ minWidth: 24, height: 24, fontSize: 13, padding: '0 7px', border: '2px solid #e0e7ef' }}>
+                        {categoryCounts[tab.name]}
+                      </span>
+                    )}
                   </motion.button>
                 ))}
               </div>
@@ -542,115 +638,152 @@ const Dashboard = () => {
               {/* User Summary */}
               <div className="grid grid-cols-1 gap-6 w-full mb-8">
                 <div className="flex flex-col justify-center h-full">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex gap-6">
                     <motion.div 
                       whileHover={{ scale: 1.02 }}
-                      className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                      className="flex w-1/4 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
                     >
-                      <div className="text-gray-600 mb-3 flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="font-semibold">Total Investment</span>
-                      </div>
-                      <div className="text-3xl font-bold text-gray-800 text-center">
-                        ${userStats.totalInvestment.toLocaleString()}
+                      <div className="flex flex-col gap-6">
+                      <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span className="font-semibold text-gray-600">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-semibold text-gray-600">Total Invested: ${userStats.totalInvestment.toLocaleString()}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2M7 7h10" />
+                            </svg>
+                            <span className="font-semibold text-gray-600">My Investments: {userStats.numberOfProjects}</span>
+                          </div>
+                        </div>
                       </div>
                     </motion.div>
-                    
+
                     <motion.div 
                       whileHover={{ scale: 1.02 }}
-                      className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                      className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
                     >
-                      <div className="text-gray-600 mb-3 flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2M7 7h10" />
-                        </svg>
-                        <span className="font-semibold">Number of Investments</span>
-                      </div>
-                      <div className="text-3xl font-bold text-gray-800 text-center">
-                        {userStats.numberOfProjects}
+                      <div className="flex flex-col gap-6">
+                        {userInvestedProjects.length > 0 && (
+                          <div className="pb-8">
+                            <div className="flex flex-wrap justify-center items-center gap-3">
+                              {userInvestedProjects.map((project) => (
+                                <motion.button
+                                  key={project.id}
+                                  onClick={() => handleProjectSelect(project)}
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  className={`w-full md:flex-1 px-6 py-4 rounded-xl text-sm font-medium transition-all duration-300 ${
+                                    selectedProjectId === project.id
+                                      ? "bg-gradient-to-r from-gray-800 to-gray-700 text-white shadow-lg"
+                                      : "bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg"
+                                  }`}
+                                >
+                                  {project.title}
+                                </motion.button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   </div>
                 </div>
               </div>
-
-              {userInvestedProjects.length > 0 && (
-                <div className="pb-8">
-                  <div className="text-sm font-semibold text-gray-700 mb-4 text-center uppercase tracking-wider">
-                    Category: {selectedTab}
-                  </div>
-                  <div className="flex flex-wrap justify-center items-center gap-3">
-                    {userInvestedProjects.map((project) => (
-                      <motion.button
-                        key={project.id}
-                        onClick={() => handleProjectSelect(project)}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`w-full md:flex-1 px-6 py-4 rounded-xl text-sm font-medium transition-all duration-300 ${
-                          selectedProjectId === project.id
-                            ? "bg-gradient-to-r from-gray-800 to-gray-700 text-white shadow-lg"
-                            : "bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg"
-                        }`}
-                      >
-                        {project.title}
-                      </motion.button>
-                    ))}
+              {/* Payments Overview */}
+              <div className="grid grid-cols-1 gap-6 w-full mb-8">
+                <div className="flex flex-col justify-center h-full">
+                  <div className="flex gap-6">
+                    <div className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
+                      <div className="mb-4 font-semibold text-gray-700 flex items-center justify-between">
+                        <div>
+                          {proposalData?.title && (
+                            <div className="text-xl text-gray-500 mt-1 capitalize"><span className="font-semibold">{proposalData.title}</span></div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200 ${!showAllMyInvestments ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            onClick={() => setShowAllMyInvestments(false)}
+                          >
+                            This Investment Only
+                          </button>
+                          <button
+                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200 ${showAllMyInvestments ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            onClick={() => setShowAllMyInvestments(true)}
+                          >
+                            All My Investments
+                          </button>
+                        </div>
+                      </div>
+                      {/* Payments Area Chart (Totals by Month) */}
+                      <ResponsiveContainer width="100%" height={180}>
+                        <AreaChart data={proposalData?.title ? paymentHistory : [{month: 'No data', value: 0}]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                          <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                          <YAxis tick={{ fontSize: 12 }} />
+                          <Tooltip formatter={v => `$${v.toLocaleString()}`} />
+                          <Area type="monotone" dataKey="value" stroke="#22c55e" fillOpacity={1} fill="#22c55e" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                      {paymentHistory.every(item => item.value === 0) && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90">
+                          <div className="text-center">
+                            <div className="text-gray-500 font-medium">No payment history available</div>
+                            <div className="text-gray-400 text-sm mt-1">for {showAllMyInvestments ? 'your investments' : 'this project'}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {/* New card to the right of the chart */}
+                    <div className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-start justify-start">
+                      <div className="mb-4 font-semibold text-gray-700">Summary</div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                        {/* Investors */}
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all duration-300">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-3 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <div className="text-sm text-white font-semibold tracking-wider">INVESTORS</div>
+                          <div className="text-2xl font-bold text-white mt-2">{proposalData?.investor_count || 0}</div>
+                        </div>
+                        {/* Capital Raised */}
+                        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all duration-300">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-3 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div className="text-sm text-white font-semibold tracking-wider">CAPITAL RAISED</div>
+                          <div className="text-2xl font-bold text-white mt-2">
+                            ${proposalData?.amount_raised?.toLocaleString() || '0'}
+                          </div>
+                        </div>
+                        {/* Remaining */}
+                        <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all duration-300">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-3 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                          <div className="text-sm text-white font-semibold tracking-wider">REMAINING</div>
+                          <div className="text-2xl font-bold text-white mt-2">
+                            ${((proposalData?.budget || 0) - (proposalData?.amount_raised || 0)).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                     
+                    </div>
                   </div>
                 </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-3 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  <div className="text-sm text-white font-semibold tracking-wider">INVESTORS</div>
-                  <div className="text-2xl font-bold text-white mt-2">{proposalData?.investor_count || 0}</div>
-                </motion.div>
-
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-3 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="text-sm text-white font-semibold tracking-wider">CAPITAL RAISED</div>
-                  <div className="text-2xl font-bold text-white mt-2">
-                    ${proposalData?.amount_raised?.toLocaleString() || '0'}
-                  </div>
-                </motion.div>
-
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-3 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  <div className="text-sm text-white font-semibold tracking-wider">REMAINING</div>
-                  <div className="text-2xl font-bold text-white mt-2">
-                    ${((proposalData?.budget || 0) - (proposalData?.amount_raised || 0)).toLocaleString()}
-                  </div>
-                </motion.div>
-
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-3 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-                  </svg>
-                  <div className="text-sm text-white font-semibold tracking-wider">PROJECT TOTAL</div>
-                  <div className="text-2xl font-bold text-white mt-2">
-                    ${proposalData?.budget?.toLocaleString() || '0'}
-                  </div>
-                </motion.div>
               </div>
             </div>
 
@@ -658,45 +791,60 @@ const Dashboard = () => {
             <div className="flex flex-col md:flex-row gap-6 mb-8">
               {proposalData && userStats.currentProjectInvestment > 0 ? (
                 <>
+                <motion.div 
+                  whileHover={{ scale: 1.02 }}
+                  className="flex-1 bg-white rounded-xl p-8 text-center flex flex-col items-center justify-center min-h-[200px] shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <div className="text-sm text-gray-500 mb-3">GOAL ${proposalData?.budget?.toLocaleString() || '0'}</div>
+                  <div className="flex items-center justify-center mb-4">
+                    {[...Array(10)].map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-10 h-40 mx-0.5 rounded-lg transition-all duration-300 ${
+                          i < Math.floor((proposalData?.amount_raised || 0) / (proposalData?.budget || 1) * 10) 
+                            ? "bg-gradient-to-b from-blue-600 to-blue-700" 
+                            : "bg-gray-200"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <div className="text-base font-semibold text-gray-700 mb-2">AMOUNT YOU INVESTED</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {isLoading ? (
+                      <div className="animate-pulse bg-gray-200 h-8 w-32 mx-auto rounded-lg"></div>
+                    ) : (
+                      `$${userStats.currentProjectInvestment.toLocaleString()}`
+                    )}
+                  </div>
+                </motion.div>
                   <motion.div 
                     whileHover={{ scale: 1.02 }}
-                    className="flex-1 bg-gradient-to-br from-lime-400 to-lime-500 rounded-xl p-8 text-center flex flex-col justify-center items-center min-h-[200px] shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="flex-1 rounded-xl p-8 text-center flex flex-col justify-center items-center min-h-[200px] shadow-lg hover:shadow-xl transition-all duration-300"
                   >
-                    <div className="text-sm text-white font-semibold tracking-wider mb-3">OWNERSHIP SHARE</div>
-                    <div className="text-5xl font-bold text-white">
-                      {isLoading ? (
-                        <div className="animate-pulse bg-white/20 h-16 w-32 mx-auto rounded-lg"></div>
-                      ) : (
-                        `${ownershipShare}%`
-                      )}
-                    </div>
-                  </motion.div>
-
-                  <motion.div 
-                    whileHover={{ scale: 1.02 }}
-                    className="flex-1 bg-white rounded-xl p-8 text-center flex flex-col items-center justify-center min-h-[200px] shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    <div className="text-sm text-gray-500 mb-3">GOAL ${proposalData?.budget?.toLocaleString() || '0'}</div>
-                    <div className="flex items-center justify-center mb-4">
-                      {[...Array(10)].map((_, i) => (
-                        <div
-                          key={i}
-                          className={`w-4 h-8 mx-0.5 rounded-lg transition-all duration-300 ${
-                            i < Math.floor((proposalData?.amount_raised || 0) / (proposalData?.budget || 1) * 10) 
-                              ? "bg-gradient-to-b from-blue-600 to-blue-700" 
-                              : "bg-gray-200"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <div className="text-base font-semibold text-gray-700 mb-2">AMOUNT YOU INVESTED</div>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {isLoading ? (
-                        <div className="animate-pulse bg-gray-200 h-8 w-32 mx-auto rounded-lg"></div>
-                      ) : (
-                        `$${userStats.currentProjectInvestment.toLocaleString()}`
-                      )}
-                    </div>
+                     {/* Ownership Share Pie Chart */}
+                     <div className="w-full flex flex-col items-center mt-8">
+                        <div className="font-semibold text-gray-700 mb-2">Ownership Share</div>
+                        <ResponsiveContainer width="100%" height={320}>
+                          <PieChart>
+                            <Pie
+                              data={ownershipPieData}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={100}
+                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                            >
+                              {ownershipPieData.map((entry, idx) => (
+                                <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={v => `$${v.toLocaleString()}`} />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
                   </motion.div>
                 </>
               ) : selectedTab === "MEMBERSHIP" && !hasMembershipPayment ? (
@@ -734,24 +882,6 @@ const Dashboard = () => {
                   </div>
                 </motion.div>
               )}
-
-              {/* Documents */}
-              <div className="flex-1 space-y-4">
-                {documentCategories.map((category) => (
-                  <motion.button
-                    key={category.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => router.push('/documents')}
-                    className="w-full p-6 rounded-xl bg-white text-gray-700 font-medium text-lg hover:bg-gray-50 transition-all duration-300 flex items-center justify-center gap-3 shadow-md hover:shadow-lg"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={category.icon} />
-                    </svg>
-                    {category.label}
-                  </motion.button>
-                ))}
-              </div>
             </div>
 
             {/* Existing Proposals List Section */}
@@ -795,21 +925,6 @@ const Dashboard = () => {
         </div>
        
       </div>
-      {chatModalOpen && chatModalChat && user && (
-        <div className="inset-0 z-50 flex ">
-          <ProposalChatModal
-            chat={chatModalChat}
-            currentUser={{
-              id: user.id,
-              email: user.email || '',
-              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
-              avatar_url: user.user_metadata?.avatar_url || null,
-              online_status: 'online',
-            }}
-            onClose={() => { setChatModalOpen(false); setChatModalChat(null); }}
-          />
-        </div>
-      )}
     </AuthLayout>
   );
 };

@@ -146,12 +146,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chat, currentUser }) => {
               <div
                 className={`min-w-4/5 rounded-lg p-3 ${
                   message.sender_id === currentUser.id
-                    ? 'bg-blue-500 text-white'
+                    ? 'bg-white shadow text-gray-900'
                     : 'bg-white shadow text-gray-900'
                 }`}
               >
                 <div className="flex items-center justify-end mt-1">
                   <div className="w-full">
+                    <div className='text-left text-xs rounded-full bg-gray-200 w-8 h-8 flex items-center justify-center shadow'>{currentUser.full_name.split(' ').map(name => name[0]).join('')}</div>
                     <div className='text-left text-sm'>{message.content}</div>
                     <div className='text-right text-xs opacity-70'>
                       {new Date(message.created_at).toLocaleTimeString([], {

@@ -18,6 +18,7 @@ const ProposalChatModal: React.FC<ProposalChatModalProps> = ({ chat, currentUser
   return (
     <div className="fixed inset-0" onClick={handleOverlayClick}>
       <div className="fixed w-full bottom-0 bg-white shadow-2xl z-[9999] flex flex-col animate-slide-in-bottom ml-auto">
+        
         <div className="flex justify-end p-2">
           <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
         </div>

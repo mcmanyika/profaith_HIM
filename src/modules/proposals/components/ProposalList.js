@@ -442,30 +442,16 @@ export default function ProposalList({ showInvestButton = true, category = null,
               <div className="p-6">
                 {/* Title */}
                 <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900 line-clamp-2">
+                  <h3 className="text-xl font-semibold text-gray-900 line-clamp-2 uppercase">
                     {proposal.title.charAt(0).toUpperCase() + proposal.title.slice(1).toLowerCase()}
                   </h3>
                 </div>
                 {/* Action Buttons */}
                 <div className="mb-6 flex justify-end space-x-2">
                   {user && (
-                    <button
-                      onClick={e => { e.stopPropagation(); handleOpenProposalChat(proposal); }}
-                      className="p-3 text-blue-500 hover:text-blue-600 rounded-full hover:bg-blue-50 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-95"
-                      title="Chat about this proposal"
-                      disabled={chatModalLoadingId === proposal.id}
-                    >
-                      {chatModalLoadingId === proposal.id ? (
-                        <svg className="w-7 h-7 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      ) : (
-                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                      )}
-                    </button>
+                    <>
+                      {/* Chat button removed */}
+                    </>
                   )}
                   {showInvestButton && proposal.status === 'active' && (
                     <button
@@ -473,12 +459,13 @@ export default function ProposalList({ showInvestButton = true, category = null,
                         e.stopPropagation();
                         router.push('/payments');
                       }}
-                      className="p-3 text-cyan-500 hover:text-cyan-600 rounded-full hover:bg-cyan-50 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-95"
+                      className="p-3 text-cyan-500 hover:text-cyan-600 rounded-full hover:bg-cyan-50 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-95 flex items-center gap-2"
                       title="View my payments"
                     >
                       <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
+                      <span className="text-sm">View my payments</span>
                     </button>
                   )}
                 </div>
