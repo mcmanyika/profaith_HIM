@@ -624,7 +624,7 @@ const Dashboard = () => {
                     )}
                     <span>{tab.name}</span>
                     {!!categoryCounts[tab.name] && (
-                      <span className="absolute -top-2 -right-2 bg-gradient-to-br from-orange-500 to-orange-600 text-white font-bold rounded-full shadow-lg flex items-center justify-center" style={{ minWidth: 24, height: 24, fontSize: 13, padding: '0 7px', border: '2px solid #e0e7ef' }}>
+                      <span className="absolute -top-2 -right-2 bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-bold rounded-full shadow-lg flex items-center justify-center" style={{ minWidth: 24, height: 24, fontSize: 13, padding: '0 7px', border: '2px solid #e0e7ef' }}>
                         {categoryCounts[tab.name]}
                       </span>
                     )}
