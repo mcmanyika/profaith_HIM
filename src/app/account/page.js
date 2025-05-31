@@ -638,13 +638,13 @@ const Dashboard = () => {
               {/* User Summary */}
               <div className="grid grid-cols-1 gap-6 w-full mb-8">
                 <div className="flex flex-col justify-center h-full">
-                  <div className="flex gap-6">
+                  <div className="flex flex-col md:flex-row gap-6">
                     <motion.div 
                       whileHover={{ scale: 1.02 }}
-                      className="flex w-1/4 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                      className="flex w-full md:w-1/4 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
                     >
-                      <div className="flex flex-col gap-6">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-6 w-full">
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -706,9 +706,9 @@ const Dashboard = () => {
               {/* Payments Overview */}
               <div className="grid grid-cols-1 gap-6 w-full mb-8">
                 <div className="flex flex-col justify-center h-full">
-                  <div className="flex gap-6">
+                  <div className="flex flex-col lg:flex-row gap-6">
                     <div className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
-                      <div className="mb-4 font-semibold text-gray-700 flex items-center justify-between">
+                      <div className="mb-4 font-semibold text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                           {proposalData?.title && (
                             <div className="text-xl text-gray-500 mt-1 capitalize"><span className="font-semibold">{proposalData.title}</span></div>
@@ -738,19 +738,11 @@ const Dashboard = () => {
                           <Area type="monotone" dataKey="value" stroke="#22c55e" fillOpacity={1} fill="#22c55e" />
                         </AreaChart>
                       </ResponsiveContainer>
-                      {paymentHistory.every(item => item.value === 0) && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90">
-                          <div className="text-center">
-                            <div className="text-gray-500 font-medium">No payment history available</div>
-                            <div className="text-gray-400 text-sm mt-1">for {showAllMyInvestments ? 'your investments' : 'this project'}</div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                     {/* New card to the right of the chart */}
                     <div className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-start justify-start">
                       <div className="mb-4 font-semibold text-gray-700">Summary</div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                         {/* Investors */}
                         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all duration-300">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-3 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -780,7 +772,6 @@ const Dashboard = () => {
                           </div>
                         </div>
                       </div>
-                     
                     </div>
                   </div>
                 </div>
