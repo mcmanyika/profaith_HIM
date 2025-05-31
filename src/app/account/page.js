@@ -791,7 +791,7 @@ const Dashboard = () => {
                     {[...Array(10)].map((_, i) => (
                       <div
                         key={i}
-                        className={`w-10 h-40 mx-0.5 rounded-lg transition-all duration-300 ${
+                        className={`w-6 h-20 md:w-10 md:h-40 mx-0.5 rounded-lg transition-all duration-300 ${
                           i < Math.floor((proposalData?.amount_raised || 0) / (proposalData?.budget || 1) * 10) 
                             ? "bg-gradient-to-b from-blue-600 to-blue-700" 
                             : "bg-gray-200"
