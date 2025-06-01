@@ -27,29 +27,32 @@ function Admin({ children }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (user?.email) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', user.email);
-            
-          if (error) throw error;
-          
-          if (!data || data.length === 0) {
-            router.push('/upload');
-            return;
-          }
-
-          if (!data[0].gender) {
-            router.push('/upload');
-            return;
-          }
-          
-          setProfiles(data);
-          setLoading(false);
+        if (!session) {
+          router.push('/auth/signin');
+          return;
         }
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('phone_number', session.user.phone);
+          
+        if (error) throw error;
+        
+        // if (!data || data.length === 0) {
+        //   router.push('/upload');
+        //   return;
+        // }
+
+        // if (!data[0].gender) {
+        //   router.push('/upload');
+        //   return;
+        // }
+        
+        setProfiles(data);
+        setLoading(false);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err.message || 'An unexpected error occurred');
@@ -89,7 +92,7 @@ function Admin({ children }) {
       <main className="flex-1 pb-16 md:pb-0 w-full transition-all duration-300 ease-in-out">
         <Header />
         <div className="overflow-auto h-[calc(100vh-4rem)]">
-          {children}
+          {typeof children === 'function' ? children(profiles) : children}
           <footer className="hidden md:block bg-white dark:bg-gray-800 text-center text-sm p-4 border-t border-gray-200 dark:border-gray-700">
             <p>&copy; {new Date().getFullYear()} All rights reserved.</p>
           </footer>

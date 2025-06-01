@@ -14,7 +14,6 @@ function UploadProfile() {
   const [formData, setFormData] = useState({
     gender: '',
     dateOfBirth: '',
-    phoneNumber: '',
     country: '',
     occupation: '',
     availability: false
@@ -22,6 +21,7 @@ function UploadProfile() {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [userEmail, setUserEmail] = useState('');
+  const [userId, setUserId] = useState('');
   const [countries, setCountries] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
@@ -50,11 +50,12 @@ function UploadProfile() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.log('No session found, redirecting to login...');
-        router.push('/login');
+        router.push('/auth/signin');
         return;
       }
       console.log('Session found:', session.user.id);
       setUserEmail(session.user.email);
+      setUserId(session.user.id);
       setCheckingSession(false);
     };
     checkSession();
@@ -118,7 +119,7 @@ function UploadProfile() {
             email: session.user.email,
             gender: formData.gender,
             date_of_birth: formData.dateOfBirth,
-            phone_number: formData.phoneNumber,
+            phone_number: session.user.phone,
             country: formData.country,
             occupation: formData.occupation,
             user_level: 1,
@@ -138,7 +139,7 @@ function UploadProfile() {
               email: session.user.email,
               gender: formData.gender,
               date_of_birth: formData.dateOfBirth,
-              phone_number: formData.phoneNumber,
+              phone_number: session.user.phone,
               country: formData.country,
               occupation: formData.occupation,
               user_level: 1,
@@ -159,7 +160,6 @@ function UploadProfile() {
       setFormData({
         gender: '',
         dateOfBirth: '',
-        phoneNumber: '',
         country: '',
         occupation: '',
         availability: false
@@ -228,18 +228,6 @@ function UploadProfile() {
               className="w-full p-2 border rounded-md"
               required
               max={new Date().toISOString().split('T')[0]}
-            />
-          </div>
-
-          <div>
-            <input
-              type="tel"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleInputChange}
-              placeholder="Phone Number"
-              className="w-full p-2 border rounded-md"
-              required
             />
           </div>
 

@@ -7,9 +7,11 @@ import { withAuth } from '../../utils/withAuth';
 function MyProfile() {
   return (
     <Admin>
-      <div className="p-6">
-        <ProfileView />
-      </div>
+      {(profiles) => (
+        <div className="p-6">
+          <ProfileView profiles={profiles} />
+        </div>
+      )}
     </Admin>
   );
 } 

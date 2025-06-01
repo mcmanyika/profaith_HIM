@@ -2,13 +2,13 @@
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useEffect, useState } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-export default function ProfileView() {
-  const [profiles, setProfiles] = useState([]);
+export default function ProfileView({ profiles: propProfiles }) {
+  const [profiles, setProfiles] = useState(propProfiles || []);
   const supabase = createClientComponentClient()
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
@@ -16,39 +16,29 @@ export default function ProfileView() {
   const [countries, setCountries] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCountries = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user?.email) {
-          // Fetch profiles
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', user.email);
-            
-          if (profileError) throw profileError;
-          setProfiles(profileData);
-
-          // Fetch countries
-          const { data: countryData, error: countryError } = await supabase
-            .from('countries')
-            .select('*')
-            .order('name');
-            
-          if (countryError) throw countryError;
-          setCountries(countryData);
-        }
+        const { data: countryData, error: countryError } = await supabase
+          .from('countries')
+          .select('*')
+          .order('name');
+          
+        if (countryError) throw countryError;
+        setCountries(countryData);
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error fetching countries:', err);
         setError(err.message || 'An unexpected error occurred');
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchData();
+    fetchCountries();
   }, []);
+
+  useEffect(() => {
+    if (propProfiles) {
+      setProfiles(propProfiles);
+    }
+  }, [propProfiles]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -60,6 +50,12 @@ export default function ProfileView() {
   }, []);
 
   const handleEdit = (profile) => {
+    console.log('Editing profile:', profile);
+    if (!profile || !profile.id) {
+      console.error('Invalid profile data:', profile);
+      toast.error('Invalid profile data. Please try again.');
+      return;
+    }
     setEditingProfile(profile);
     setIsModalOpen(true);
   };
@@ -68,29 +64,48 @@ export default function ProfileView() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase
+      if (!editingProfile || !editingProfile.id) {
+        throw new Error('Invalid profile data');
+      }
+
+      console.log('Saving profile:', editingProfile);
+      
+      const { data, error } = await supabase
         .from('profiles')
         .update({
           gender: editingProfile.gender,
           date_of_birth: editingProfile.date_of_birth,
           country: editingProfile.country,
           occupation: editingProfile.occupation,
-          professional_skills: editingProfile.professional_skills,
           phone_number: editingProfile.phone_number,
         })
-        .eq('id', editingProfile.id);
+        .eq('id', editingProfile.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(error.message || 'Failed to update profile');
+      }
 
-      setProfiles(profiles.map(p => 
-        p.id === editingProfile.id ? editingProfile : p
-      ));
+      console.log('Update response:', data);
+
+      if (!data || data.length === 0) {
+        console.error('No profile found with ID:', editingProfile.id);
+        throw new Error('No profile was found to update. Please try again.');
+      }
+
+      // Update the profiles state with the new data
+      const updatedProfiles = profiles.map(p => 
+        p.id === editingProfile.id ? { ...p, ...data[0] } : p
+      );
+      setProfiles(updatedProfiles);
       setIsModalOpen(false);
       toast.success('Profile updated successfully!');
     } catch (err) {
       console.error('Error updating profile:', err);
-      toast.error(err.message || 'An unexpected error occurred');
-      setError(err.message || 'An unexpected error occurred');
+      const errorMessage = err.message || 'An unexpected error occurred while updating the profile';
+      toast.error(errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -112,18 +127,6 @@ export default function ProfileView() {
 
   return (
     <>
-      <ToastContainer
-        position="bottom-center"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
@@ -173,12 +176,6 @@ export default function ProfileView() {
                           <p className="text-sm font-medium text-gray-500">Occupation</p>
                           <p className="mt-1 text-base text-gray-900">
                             {profile.occupation || 'Not specified'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Professional Skills</p>
-                          <p className="mt-1 text-base text-gray-900">
-                            {profile.professional_skills || 'Not specified'}
                           </p>
                         </div>
                         <div>
@@ -275,16 +272,6 @@ export default function ProfileView() {
                       name="occupation"
                       value={editingProfile?.occupation || ''}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 text-sm rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 bg-white text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Professional Skills</label>
-                    <textarea
-                      name="professional_skills"
-                      value={editingProfile?.professional_skills || ''}
-                      onChange={handleInputChange}
-                      rows="2"
                       className="block w-full px-3 py-2 text-sm rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 bg-white text-gray-900"
                     />
                   </div>

@@ -19,11 +19,12 @@ function SignIn() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isSignUp, setIsSignUp] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [otp, setOtp] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [countdown, setCountdown] = useState(0)
   const [error, setError] = useState(null)
-  const [showVerifyEmailMessage, setShowVerifyEmailMessage] = useState(false)
   const [logoUrl, setLogoUrl] = useState(null)
   const [isLogoLoading, setIsLogoLoading] = useState(true)
   const [passwordErrors, setPasswordErrors] = useState([])
@@ -138,10 +139,14 @@ function SignIn() {
 
   const handleSubmit = async () => {
     setError(null)
-    setPasswordErrors([])
 
-    if (!email || !password || (isSignUp && !fullName)) {
-      setError('Please fill in all required fields.')
+    if (!phone) {
+      setError('Please enter your phone number.')
+      return
+    }
+
+    if (isSignUp && !displayName) {
+      setError('Full Name')
       return
     }
 
@@ -153,42 +158,44 @@ function SignIn() {
     }
 
     try {
-      if (isSignUp) {
-        const { isValid, errors } = validatePassword(password)
-        if (!isValid) {
-          setPasswordErrors(errors)
-          return
-        }
-
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
+      if (!otpSent) {
+        // Send OTP
+        const { error } = await supabase.auth.signInWithOtp({
+          phone: phone,
           options: {
             data: {
-              full_name: fullName,
-            },
-            emailRedirectTo: `${window.location.origin}/auth/callback`
-          },
-        })
-        if (error) throw error
-        setShowVerifyEmailMessage(true)
-        setEmail('')
-        setPassword('')
-        setFullName('')
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ 
-          email, 
-          password,
-          options: {
-            expiresIn: 10 * 60 * 1000 // 10 minutes
+              type: 'phone_otp',
+              display_name: isSignUp ? displayName : undefined
+            }
           }
+        })
+        
+        if (error) throw error
+        
+        setOtpSent(true)
+        setCountdown(60) // Start 60 second countdown
+        const timer = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+      } else {
+        // Verify OTP
+        const { data, error } = await supabase.auth.verifyOtp({
+          phone: phone,
+          token: otp,
+          type: 'sms'
         })
 
         // Log login attempt
-        await loginMonitor.logLoginAttempt(email, !error, {
-          ip: window.location.hostname, // In production, you'd get this from the server
+        await loginMonitor.logLoginAttempt(phone, !error, {
+          ip: window.location.hostname,
           userAgent: navigator.userAgent,
-          location: 'Unknown' // In production, you'd get this from IP geolocation
+          location: 'Unknown'
         })
 
         if (error) {
@@ -196,7 +203,7 @@ function SignIn() {
           setRemainingAttempts(Math.max(0, 3 - attempts))
           
           if (attempts >= 3) {
-            await sendLockoutNotification(email)
+            await sendLockoutNotification(phone)
           }
           
           throw error
@@ -220,6 +227,36 @@ function SignIn() {
     }
   }
 
+  const handleResendOtp = async () => {
+    if (countdown > 0) return
+    
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: phone,
+        options: {
+          data: {
+            type: 'phone_otp_resend'
+          }
+        }
+      })
+      
+      if (error) throw error
+      
+      setCountdown(60)
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    } catch (error) {
+      setError(error.message)
+    }
+  }
+
   const handleMFAVerify = async (code) => {
     if (!mfaFactorId) {
       setError('MFA setup error. Please try again.')
@@ -230,7 +267,7 @@ function SignIn() {
       const { success, error } = await mfaManager.verifyMFA(mfaFactorId, code)
       
       // Log MFA verification attempt
-      await loginMonitor.logLoginAttempt(email, success, {
+      await loginMonitor.logLoginAttempt(phone, success, {
         ip: window.location.hostname,
         userAgent: navigator.userAgent,
         location: 'Unknown',
@@ -248,6 +285,14 @@ function SignIn() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
       <div className="flex flex-col md:flex-row w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden">
@@ -255,22 +300,24 @@ function SignIn() {
         <div className="w-full md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-12">
           <div className="text-center text-gray-600">
             <div className="flex justify-center mb-6">
-              {!isLogoLoading && logoUrl && (
+              
                 <Image 
-                  src='https://sdlrxbcshhjhuaqoidzh.supabase.co/storage/v1/object/sign/images/logo.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InN0b3JhZ2UtdXJsLXNpZ25pbmcta2V5X2ZiMTA0MWNmLWRlYmUtNGZlZC04YWQ3LWFhMTk2ZDJiN2Q0YSJ9.eyJ1cmwiOiJpbWFnZXMvbG9nby5wbmciLCJpYXQiOjE3NDgyOTY0MjksImV4cCI6MTc3OTgzMjQyOX0.Ekkwjoh5kZeKErtiemlS09kkf57Dpvoard4uMwjmuUI'
-                  alt="Kumusha Logo" 
+                  src='https://sdlrxbcshhjhuaqoidzh.supabase.co/storage/v1/object/sign/images/logo.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InN0b3JhZ2UtdXJsLXNpZ25pbmcta2V5X2ZiMTA0MWNmLWRlYmUtNGZlZC04YWQ3LWFhMTk2ZDJiN2Q0YSJ9.eyJ1cmwiOiJpbWFnZXMvbG9nby5wbmciLCJpYXQiOjE3NDg3OTM1MTgsImV4cCI6MTc4MDMyOTUxOH0.b5KORbht1TJ9m8oIsPMaexeHknIu00diC51ECjxAmvg'
+                  alt="Logo" 
                   width={150} 
                   height={100}
                   priority
                   className="rounded-full object-contain" 
                 />
-              )}
+              
             </div>
             <h1 className="text-6xl font-bold mb-4 uppercase">
-              <p className="text-sm font-thin">Investor Portal</p> </h1>
+              <p className="text-sm font-thin">Investor Portal</p>
+            </h1>
             <p className="text-gray-600 text-sm capitalize">Join our community and start your journey today</p>
           </div>
         </div>
+
         {/* Right: Form */}
         <div className="w-full md:w-1/2 p-6 md:p-12 space-y-6">
           <div className="text-center mb-8">
@@ -279,19 +326,13 @@ function SignIn() {
             </h2>
           </div>
 
-          {!isSignUp && email && (
-            <AccountLockoutMessage email={email} />
+          {!isSignUp && phone && (
+            <AccountLockoutMessage email={phone} />
           )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
               {error}
-            </div>
-          )}
-
-          {showVerifyEmailMessage && (
-            <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm">
-              A verification email has been sent. Please check your inbox to verify your email address.
             </div>
           )}
 
@@ -323,70 +364,49 @@ function SignIn() {
               {isSignUp && (
                 <div>
                   <input
-                    id="fullName"
                     type="text"
-                    placeholder="Enter your full name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Full Name"
                     className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
                   />
                 </div>
               )}
-
               <div>
                 <input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone Number"
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                  disabled={otpSent}
                 />
               </div>
 
-              <div>
-                <div className="relative">
+              {otpSent && (
+                <div>
                   <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="Enter OTP code"
                     className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                    maxLength={6}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute text-xs right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-                {isSignUp && password && (
-                  <>
-                    <PasswordStrengthIndicator password={password} />
-                    {passwordErrors.length > 0 && (
-                      <div className="mt-2 text-sm text-red-600">
-                        <ul className="list-disc pl-5">
-                          {passwordErrors.map((error, index) => (
-                            <li key={index}>{error}</li>
-                          ))}
-                        </ul>
-                      </div>
+                  <div className="mt-2 text-sm text-gray-600">
+                    {countdown > 0 ? (
+                      <span>Resend OTP in {countdown}s</span>
+                    ) : (
+                      <button
+                        onClick={handleResendOtp}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        Resend OTP
+                      </button>
                     )}
-                  </>
-                )}
-                {!isSignUp && (
-                  <div className="text-right mt-1">
-                    <Link
-                      href="/auth/forgot-password"
-                      className="text-sm text-gray-600 hover:text-black transition duration-200"
-                    >
-                      Forgot Password?
-                    </Link>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -395,8 +415,19 @@ function SignIn() {
               <button
                 onClick={handleSubmit}
                 className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200 font-medium text-sm"
+                disabled={isLoading}
               >
-                {isSignUp ? 'Create Account' : 'Sign In'}
+                {isLoading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  otpSent ? 'Verify OTP' : 'Send OTP'
+                )}
               </button>
 
               <div className="text-center">
@@ -414,4 +445,5 @@ function SignIn() {
     </div>
   )
 }
-export default SignIn;
+
+export default SignIn
