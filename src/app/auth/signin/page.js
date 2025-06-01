@@ -60,7 +60,7 @@ function SignIn() {
     
     // Show warning when 1 minute remaining
     if (timeUntilTimeout <= WARNING_THRESHOLD && timeUntilTimeout > 0) {
-      setError('Your session will expire in 1 minute. Please save your work.')
+      setError('Your session will expire in 1 minute.')
     }
     
     if (currentTime - lastActivity > SESSION_TIMEOUT) {
