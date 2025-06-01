@@ -711,7 +711,7 @@ const Dashboard = () => {
                   <div className="flex flex-col lg:flex-row gap-6">
                     <div className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 h-[400px]">
                         <div className="w-full pl-4">
-                          {userStats.totalInvestment && (
+                          {userStats.totalInvestment > 0 && proposalData && (
                             <div className="text-xl text-gray-500 mt-1 mb-2 capitalize"><span className="font-semibold">{proposalData.title}</span></div>
                           )}
                         </div>
