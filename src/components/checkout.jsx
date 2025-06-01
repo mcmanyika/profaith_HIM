@@ -18,19 +18,25 @@ import 'react-toastify/dist/ReactToastify.css';
 // This is your test publishable API key.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
-function PaymentForm({ proposalId, investorId, amount, customerName, customerEmail, phoneNumber }) {
+function PaymentForm({ proposalId, investorId, customerName, customerEmail, phoneNumber }) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
 
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [amount, setAmount] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
       setMessage("Please wait while we load the payment system...");
+      return;
+    }
+
+    if (!amount || isNaN(amount) || amount <= 0) {
+      setMessage("Please enter a valid amount");
       return;
     }
 
@@ -108,6 +114,73 @@ function PaymentForm({ proposalId, investorId, amount, customerName, customerEma
 
   return (
     <form id="payment-form" onSubmit={handleSubmit} className="payment-form">
+      <div className="amount-input-container">
+        <label htmlFor="amount" className="amount-label">Amount (USD)</label>
+        <div className="amount-input-wrapper">
+          <span className="currency-symbol">$</span>
+          <input
+            type="number"
+            id="amount"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.00"
+            min="0"
+            step="0.01"
+            required
+            className="amount-input"
+          />
+        </div>
+      </div>
+      <style jsx>{`
+        .amount-input-container {
+          margin-bottom: 24px;
+        }
+        .amount-label {
+          display: block;
+          font-size: 14px;
+          font-weight: 500;
+          color: #30313d;
+          margin-bottom: 8px;
+        }
+        .amount-input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .currency-symbol {
+          position: absolute;
+          left: 12px;
+          color: #30313d;
+          font-size: 16px;
+          font-weight: 500;
+        }
+        .amount-input {
+          width: 100%;
+          padding: 12px 12px 12px 28px;
+          font-size: 16px;
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
+          background-color: #ffffff;
+          color: #30313d;
+          transition: border-color 0.2s ease;
+        }
+        .amount-input:focus {
+          outline: none;
+          border-color: #0570de;
+          box-shadow: 0 0 0 1px #0570de;
+        }
+        .amount-input::placeholder {
+          color: #a0a0a0;
+        }
+        .amount-input::-webkit-inner-spin-button,
+        .amount-input::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        .amount-input[type=number] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
       <PaymentElement id="payment-element" options={paymentElementOptions} />
       <button 
         disabled={isLoading || !stripe || !elements} 
@@ -143,13 +216,12 @@ function PaymentForm({ proposalId, investorId, amount, customerName, customerEma
 PaymentForm.propTypes = {
   proposalId: PropTypes.string.isRequired,
   investorId: PropTypes.string.isRequired,
-  amount: PropTypes.number.isRequired,
   customerName: PropTypes.string,
   customerEmail: PropTypes.string,
   phoneNumber: PropTypes.string,
 };
 
-export default function CheckoutForm({ clientSecret, proposalId, investorId, amount, customerName, customerEmail, phoneNumber }) {
+export default function CheckoutForm({ clientSecret, proposalId, investorId, customerName, customerEmail, phoneNumber }) {
 
   const appearance = {
     theme: 'stripe',
@@ -170,7 +242,6 @@ export default function CheckoutForm({ clientSecret, proposalId, investorId, amo
         <PaymentForm 
           proposalId={proposalId}
           investorId={investorId}
-          amount={amount}
           customerName={customerName}
           customerEmail={customerEmail}
           phoneNumber={phoneNumber}
@@ -184,7 +255,6 @@ CheckoutForm.propTypes = {
   clientSecret: PropTypes.string.isRequired,
   proposalId: PropTypes.string.isRequired,
   investorId: PropTypes.string.isRequired,
-  amount: PropTypes.number.isRequired,
   customerName: PropTypes.string,
   customerEmail: PropTypes.string,
   phoneNumber: PropTypes.string,

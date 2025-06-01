@@ -143,13 +143,13 @@ export default function CheckoutPageWrapper({ params }) {
             <div className="p-4 sm:p-8 bg-gray-50 border-r border-gray-200">
               <div className="space-y-4 sm:space-y-8">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{proposal.title}</h1>
+                  <h1 className="text-xl md:text-3xl font-bold text-gray-900 tracking-tight capitalize">{proposal.title}</h1>
                   <p className="mt-2 sm:mt-4 text-gray-600 leading-relaxed">{proposal.description}</p>
                 </div>
                 
                 <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm">
                   <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">Investment Details</h2>
-                  <dl className="space-y-4">
+                  <dl className="space-y-4 text-sm">
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
                       <dt className="text-gray-600">Status</dt>
                       <dd className="font-medium text-gray-900">
@@ -160,8 +160,8 @@ export default function CheckoutPageWrapper({ params }) {
                         </span>
                       </dd>
                     </div>
-                    <div className="flex justify-between items-center py-2">
-                      <dt className="text-gray-600">Created</dt>
+                    <div className="flex justify-between items-center py-2 text-sm">
+                      <dt className="text-gray-600 text-sm">Created</dt>
                       <dd className="font-medium text-gray-900">
                         {new Date(proposal.created_at).toLocaleDateString()}
                       </dd>
