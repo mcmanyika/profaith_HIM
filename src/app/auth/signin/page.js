@@ -274,7 +274,7 @@ function SignIn() {
         {/* Right: Form */}
         <div className="w-full md:w-1/2 p-6 md:p-12 space-y-6">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800">
+            <h2 className="text-xl font-bold text-gray-800 uppercase">
               {requiresMFA ? 'Two-Factor Authentication' : (isSignUp ? 'Create an Account' : 'Sign In')}
             </h2>
           </div>
@@ -322,9 +322,6 @@ function SignIn() {
             <div className="space-y-4">
               {isSignUp && (
                 <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name
-                  </label>
                   <input
                     id="fullName"
                     type="text"
@@ -337,9 +334,6 @@ function SignIn() {
               )}
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
                 <input
                   id="email"
                   type="email"
@@ -351,9 +345,6 @@ function SignIn() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
-                </label>
                 <div className="relative">
                   <input
                     id="password"
@@ -366,7 +357,7 @@ function SignIn() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    className="absolute text-xs right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
                     {showPassword ? "Hide" : "Show"}
                   </button>
