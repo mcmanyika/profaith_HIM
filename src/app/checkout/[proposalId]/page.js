@@ -23,6 +23,9 @@ export default function CheckoutPageWrapper({ params }) {
   const [loading, setLoading] = useState(true);
   const [clientSecret, setClientSecret] = useState(null);
   const [investorId, setInvestorId] = useState(null);
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const supabase = createClientComponentClient();
   const proposalId = use(params).proposalId;
   
@@ -53,13 +56,16 @@ export default function CheckoutPageWrapper({ params }) {
         }
         setClientSecret(data.clientSecret);
       } catch (error) {
-        console.error('Error creating payment intent:', error);
+        // console.error('Error creating payment intent:', error);
         toast.error('Failed to initialize payment');
       }
     };
 
-    createPaymentIntent();
-  }, [amount, proposalId]);
+    // Only create payment intent if we don't have one and have a valid proposal
+    if (!clientSecret && proposal) {
+      createPaymentIntent();
+    }
+  }, [amount, proposalId, clientSecret, proposal]);
 
   useEffect(() => {
     const fetchProposal = async () => {
@@ -71,6 +77,17 @@ export default function CheckoutPageWrapper({ params }) {
           return;
         }
         setInvestorId(user.id);
+
+        // Fetch profile for name, email, and phone number
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('full_name, email, phone_number')
+          .eq('id', user.id)
+          .single();
+        if (profileError) throw profileError;
+        setCustomerName(profile.full_name);
+        setCustomerEmail(profile.email);
+        setPhoneNumber(profile.phone_number);
 
         const { data, error } = await supabase
           .from('proposals')
@@ -93,7 +110,7 @@ export default function CheckoutPageWrapper({ params }) {
 
         setProposal(data);
       } catch (error) {
-        console.error('Error fetching proposal:', error);
+        // console.error('Error fetching proposal:', error);
         toast.error('Failed to load proposal');
         router.push('/');
       } finally {
@@ -160,7 +177,7 @@ export default function CheckoutPageWrapper({ params }) {
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Complete Your Investment</h2>
                 {clientSecret ? (
                   <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <CheckoutForm clientSecret={clientSecret} proposalId={proposalId} investorId={investorId} amount={amount} />
+                    <CheckoutForm clientSecret={clientSecret} proposalId={proposalId} investorId={investorId} amount={amount} customerName={customerName} customerEmail={customerEmail} phoneNumber={phoneNumber} />
                   </Elements>
                 ) : (
                   <div className="flex justify-center items-center p-8">

@@ -730,7 +730,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                       {/* Payments Area Chart (Totals by Month) */}
-                      <ResponsiveContainer width="100%" height={180}>
+                      <ResponsiveContainer width="100%" height={300}>
                         <AreaChart data={proposalData?.title ? paymentHistory : [{month: 'No data', value: 0}]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                           <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                           <YAxis tick={{ fontSize: 12 }} />
@@ -739,9 +739,11 @@ const Dashboard = () => {
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
+
+                    
                     {/* New card to the right of the chart */}
-                    <div className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-start justify-start">
-                      <div className="mb-4 font-semibold text-gray-700">Summary</div>
+                    <div className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center justify-center">
+                      <div className="mb-4 font-semibold text-gray-700 uppercase">Summary</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                         {/* Investors */}
                         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-center shadow-lg hover:shadow-xl transition-all duration-300">

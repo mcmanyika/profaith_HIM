@@ -10,7 +10,7 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    const { paymentIntentId, proposalId, investorId, amount } = await req.json();
+    const { paymentIntentId, proposalId, investorId, amount, customerName, customerEmail, phoneNumber } = await req.json();
 
     if (!paymentIntentId || !proposalId || !investorId || !amount) {
       return NextResponse.json(
@@ -43,6 +43,22 @@ export async function POST(req) {
         { message: 'Error saving payment data' },
         { status: 500 }
       );
+    }
+
+    // Update the transaction row with customerName, customerEmail, and phoneNumber
+    if (data && (customerName || customerEmail || phoneNumber)) {
+      const { error: updateError } = await supabase
+        .from('transactions')
+        .update({
+          customer_name: customerName,
+          customer_email: customerEmail,
+          phone_number: phoneNumber
+        })
+        .eq('id', data);
+      if (updateError) {
+        console.error('Error updating transaction with customer info:', updateError);
+        // Not fatal, so don't return error
+      }
     }
 
     return NextResponse.json(

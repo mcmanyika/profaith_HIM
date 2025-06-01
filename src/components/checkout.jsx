@@ -18,7 +18,7 @@ import 'react-toastify/dist/ReactToastify.css';
 // This is your test publishable API key.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
-function PaymentForm({ proposalId, investorId, amount }) {
+function PaymentForm({ proposalId, investorId, amount, customerName, customerEmail, phoneNumber }) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -74,6 +74,9 @@ function PaymentForm({ proposalId, investorId, amount }) {
             paymentIntentId: paymentIntent.id,
             proposalId,
             investorId,
+            customerName,
+            customerEmail,
+            phoneNumber,
             amount
           }),
         });
@@ -140,12 +143,13 @@ function PaymentForm({ proposalId, investorId, amount }) {
 PaymentForm.propTypes = {
   proposalId: PropTypes.string.isRequired,
   investorId: PropTypes.string.isRequired,
-  amount: PropTypes.number.isRequired
+  amount: PropTypes.number.isRequired,
+  customerName: PropTypes.string,
+  customerEmail: PropTypes.string,
+  phoneNumber: PropTypes.string,
 };
 
-export default function CheckoutForm({ clientSecret, proposalId, investorId, amount }) {
-  // Log the props received by the component
-  console.log('CheckoutForm props:', { clientSecret, proposalId, investorId, amount });
+export default function CheckoutForm({ clientSecret, proposalId, investorId, amount, customerName, customerEmail, phoneNumber }) {
 
   const appearance = {
     theme: 'stripe',
@@ -167,6 +171,9 @@ export default function CheckoutForm({ clientSecret, proposalId, investorId, amo
           proposalId={proposalId}
           investorId={investorId}
           amount={amount}
+          customerName={customerName}
+          customerEmail={customerEmail}
+          phoneNumber={phoneNumber}
         />
       </Elements>
     </div>
@@ -177,5 +184,8 @@ CheckoutForm.propTypes = {
   clientSecret: PropTypes.string.isRequired,
   proposalId: PropTypes.string.isRequired,
   investorId: PropTypes.string.isRequired,
-  amount: PropTypes.number.isRequired
+  amount: PropTypes.number.isRequired,
+  customerName: PropTypes.string,
+  customerEmail: PropTypes.string,
+  phoneNumber: PropTypes.string,
 };
