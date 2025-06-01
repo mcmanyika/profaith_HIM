@@ -31,7 +31,7 @@ function SignIn() {
   const [remainingAttempts, setRemainingAttempts] = useState(3)
   const [lastActivity, setLastActivity] = useState(Date.now())
   const SESSION_TIMEOUT = 10 * 60 * 1000 // 10 minutes in milliseconds
-  const ACTIVITY_CHECK_INTERVAL = 30 * 1000 // Check every 30 seconds
+  const ACTIVITY_CHECK_INTERVAL = 180 * 1000 // Check every 3 minutes
   const WARNING_THRESHOLD = 1 * 60 * 1000 // Show warning 1 minute before timeout
   const [requiresMFA, setRequiresMFA] = useState(false)
   const [mfaFactorId, setMfaFactorId] = useState(null)

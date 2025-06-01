@@ -708,12 +708,12 @@ const Dashboard = () => {
                 <div className="flex flex-col justify-center h-full">
                   <div className="flex flex-col lg:flex-row gap-6">
                     <div className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
-                      <div className="mb-4 font-semibold text-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div>
+                        <div className="w-full pl-4">
                           {proposalData?.title && (
                             <div className="text-xl text-gray-500 mt-1 capitalize"><span className="font-semibold">{proposalData.title}</span></div>
                           )}
                         </div>
+                      <div className="mb-4 font-semibold text-right text-gray-700 flex flex-col md:flex-row md:items-center md:justify-end gap-4 w-full">
                         <div className="flex items-center gap-2">
                           <button
                             className={`px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200 ${!showAllMyInvestments ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
@@ -819,6 +819,16 @@ const Dashboard = () => {
                         <div className="font-semibold text-gray-700 mb-2">Ownership Share</div>
                         <ResponsiveContainer width="100%" height={320}>
                           <PieChart>
+                            <defs>
+                              <linearGradient id="colorYourShare" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#16a34a" stopOpacity={0.8}/>
+                              </linearGradient>
+                              <linearGradient id="colorOthers" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#2563eb" stopOpacity={0.8}/>
+                              </linearGradient>
+                            </defs>
                             <Pie
                               data={ownershipPieData}
                               dataKey="value"
@@ -827,14 +837,38 @@ const Dashboard = () => {
                               cy="50%"
                               innerRadius={60}
                               outerRadius={100}
+                              paddingAngle={2}
                               label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                              labelLine={false}
+                              animationDuration={1500}
+                              animationBegin={0}
                             >
                               {ownershipPieData.map((entry, idx) => (
-                                <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                                <Cell 
+                                  key={`cell-${idx}`} 
+                                  fill={idx === 0 ? "url(#colorYourShare)" : "url(#colorOthers)"}
+                                  stroke="#fff"
+                                  strokeWidth={2}
+                                />
                               ))}
                             </Pie>
-                            <Tooltip formatter={v => `$${v.toLocaleString()}`} />
-                            <Legend />
+                            <Tooltip 
+                              formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']}
+                              contentStyle={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                                padding: '12px'
+                              }}
+                            />
+                            <Legend 
+                              verticalAlign="bottom" 
+                              height={36}
+                              formatter={(value) => (
+                                <span style={{ color: '#4B5563', fontSize: '14px' }}>{value}</span>
+                              )}
+                            />
                           </PieChart>
                         </ResponsiveContainer>
                       </div>

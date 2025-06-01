@@ -459,7 +459,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
                         e.stopPropagation();
                         router.push('/payments');
                       }}
-                      className="p-3 text-cyan-500 hover:text-cyan-600 rounded-full hover:bg-cyan-50 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-95 flex items-center gap-2"
+                      className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:text-cyan-600 rounded-full hover:bg-cyan-50 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-95 flex items-center gap-2"
                       title="View my payments"
                     >
                       <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
