@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import 'react-toastify/dist/ReactToastify.css';
 import withAuth from '../../utils/withAuth';
 import { useRouter } from 'next/navigation';
+import withSessionTimeout from '../../utils/withSessionTimeout';
 
 function UploadProfile() {
   const router = useRouter();
@@ -327,4 +328,4 @@ function UploadProfile() {
   );
 }
 
-export default withAuth(UploadProfile);
+export default withSessionTimeout(UploadProfile);

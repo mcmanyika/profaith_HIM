@@ -5,6 +5,8 @@ import Admin from "../../components/layout/Admin";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import withSessionTimeout from '../../utils/withSessionTimeout'
+import { useRouter } from 'next/navigation'
 
 function DocumentsPage() {
   const [documents, setDocuments] = useState([])
@@ -23,6 +25,7 @@ function DocumentsPage() {
   const documentsPerPage = 6
   const fileInputRef = useRef(null)
   const supabase = createClientComponentClient()
+  const router = useRouter()
 
   const documentCategories = [
     { id: 'bank_statements', label: 'Bank Statements' },
@@ -532,4 +535,4 @@ function DocumentsPage() {
   )
 }
 
-export default withAuth(DocumentsPage)
+export default withSessionTimeout(DocumentsPage)
