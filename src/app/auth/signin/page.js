@@ -13,12 +13,14 @@ import Link from 'next/link'
 import { sessionManager } from '../../../utils/sessionManager'
 import { mfaManager } from '../../../utils/mfaManager'
 import { loginMonitor } from '../../../utils/loginMonitor'
+import { countryCodes } from '../../../utils/countryCodes'
 
 function SignIn() {
   const supabase = createClientComponentClient()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isSignUp, setIsSignUp] = useState(false)
+  const [countryCode, setCountryCode] = useState('+1') // Default to US/Canada
   const [phone, setPhone] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [otp, setOtp] = useState('')
@@ -36,6 +38,15 @@ function SignIn() {
   const WARNING_THRESHOLD = 1 * 60 * 1000 // Show warning 1 minute before timeout
   const [requiresMFA, setRequiresMFA] = useState(false)
   const [mfaFactorId, setMfaFactorId] = useState(null)
+  const [showCountryList, setShowCountryList] = useState(false)
+  const [searchCountry, setSearchCountry] = useState('')
+
+  const filteredCountries = countryCodes.filter(country => 
+    country.country.toLowerCase().includes(searchCountry.toLowerCase()) ||
+    country.code.includes(searchCountry)
+  );
+
+  const selectedCountry = countryCodes.find(c => c.code === countryCode) || { code: '+1', country: 'United States' };
 
   // Track user activity
   const updateLastActivity = useCallback(() => {
@@ -145,6 +156,9 @@ function SignIn() {
       return
     }
 
+    // Format phone number with country code
+    const formattedPhone = `${countryCode}${phone.replace(/\D/g, '')}`
+
     if (isSignUp && !displayName) {
       setError('Full Name')
       return
@@ -161,7 +175,7 @@ function SignIn() {
       if (!otpSent) {
         // Send OTP
         const { error } = await supabase.auth.signInWithOtp({
-          phone: phone,
+          phone: formattedPhone,
           options: {
             data: {
               type: 'phone_otp',
@@ -186,13 +200,13 @@ function SignIn() {
       } else {
         // Verify OTP
         const { data, error } = await supabase.auth.verifyOtp({
-          phone: phone,
+          phone: formattedPhone,
           token: otp,
           type: 'sms'
         })
 
         // Log login attempt
-        await loginMonitor.logLoginAttempt(phone, !error, {
+        await loginMonitor.logLoginAttempt(formattedPhone, !error, {
           ip: window.location.hostname,
           userAgent: navigator.userAgent,
           location: 'Unknown'
@@ -203,7 +217,7 @@ function SignIn() {
           setRemainingAttempts(Math.max(0, 3 - attempts))
           
           if (attempts >= 3) {
-            await sendLockoutNotification(phone)
+            await sendLockoutNotification(formattedPhone)
           }
           
           throw error
@@ -372,15 +386,61 @@ function SignIn() {
                   />
                 </div>
               )}
-              <div>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Phone Number"
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
-                  disabled={otpSent}
-                />
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowCountryList(!showCountryList)}
+                      className="flex items-center gap-2 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition w-40"
+                      disabled={otpSent}
+                    >
+                      <span>{selectedCountry.code}</span>
+                      <span className="text-gray-500">▼</span>
+                    </button>
+                    
+                    {showCountryList && (
+                      <div className="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <div className="p-2 sticky top-0 bg-white border-b">
+                          <input
+                            type="text"
+                            value={searchCountry}
+                            onChange={(e) => setSearchCountry(e.target.value)}
+                            placeholder="Search country..."
+                            className="w-full p-2 border border-gray-300 rounded"
+                          />
+                        </div>
+                        <div className="py-1">
+                          {filteredCountries.map((country) => (
+                            <button
+                              key={country.code + country.country}
+                              onClick={() => {
+                                setCountryCode(country.code);
+                                setShowCountryList(false);
+                                setSearchCountry('');
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                            >
+                              <span className="text-gray-600">{country.code}</span>
+                              <span>{country.country}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Phone Number"
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                    disabled={otpSent}
+                  />
+                </div>
+                <div className="text-sm text-gray-500">
+                  Example: {selectedCountry.code} 1234567890
+                </div>
               </div>
 
               {otpSent && (
