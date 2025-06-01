@@ -891,7 +891,7 @@ const Dashboard = () => {
                 >
                   <div className="flex flex-col items-center justify-center text-white">
                     <svg className="h-16 w-16 text-white mb-4" />
-                    <div className="text-lg font-semibold mb-2 capitalize text-sm">
+                    <div className="font-semibold mb-2 capitalize text-sm">
                       You are not a paid member yet.
                     </div>
                      {/* Membership Modal Trigger */}
@@ -904,20 +904,7 @@ const Dashboard = () => {
                   </div>
                 </motion.div>
               ) : (
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  className="flex-1 bg-gradient-to-br from-lime-400 to-lime-500 rounded-xl p-8 text-center flex items-center justify-center h-[400px] shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <div className="flex flex-col items-center justify-center text-white">
-                    <svg className="h-16 w-16 text-white mb-4" />
-                    <div className="text-lg font-semibold mb-2 text-sm">
-                      You have not yet invested in {selectedTab} category
-                    </div>
-                    <div className="text-xs mb-4">
-                      Explore investments opportunities available!
-                    </div>
-                  </div>
-                </motion.div>
+                <></>
               )}
             </div>
 

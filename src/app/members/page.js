@@ -35,7 +35,7 @@ function MembersPage() {
   const [userLevel, setUserLevel] = useState(null);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const investmentsPerPage = 9;
-  const profilesPerPage = 10;
+  const profilesPerPage = 12;
   const supabase = createClientComponentClient();
 
   // Add function to check user level
@@ -499,9 +499,9 @@ function MembersPage() {
               <div
                 key={profile.id}
                 onClick={() => handleProfileClick(profile)}
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer border border-gray-100"
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer border border-gray-100 h-[200px] flex flex-col"
               >
-                <div className="p-6">
+                <div className="p-6 flex-1">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
                       {profile.avatar_url ? (
