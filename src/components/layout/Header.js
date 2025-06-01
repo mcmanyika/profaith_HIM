@@ -76,7 +76,7 @@ function Header() {
           >
             <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
               <span className="text-sm font-medium text-gray-600">
-                {user?.email ? user.email[0].toUpperCase() : '?'}
+                {user?.user_metadata?.display_name ? user.user_metadata.display_name[0].toUpperCase() : '?'}
               </span>
             </div>
           </button>
