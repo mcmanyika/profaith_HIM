@@ -25,6 +25,7 @@ function UploadProfile() {
   const [countries, setCountries] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     const fetchCountries = async () => {
@@ -47,16 +48,45 @@ function UploadProfile() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('No session found, redirecting to login...');
-        router.push('/auth/signin');
-        return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          console.log('No session found, redirecting to login...');
+          router.push('/auth/signin');
+          return;
+        }
+        console.log('Session found:', session.user.id);
+        setUserEmail(session.user.email);
+        setUserId(session.user.id);
+
+        // Check if profile exists with all required data
+        const { data: existingProfile, error: fetchError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          console.error('Error checking existing profile:', fetchError);
+          return;
+        }
+
+        // Check if all required fields are filled
+        if (existingProfile && 
+            existingProfile.gender && 
+            existingProfile.date_of_birth && 
+            existingProfile.country && 
+            existingProfile.occupation) {
+          console.log('Profile complete, redirecting to account...');
+          setIsRedirecting(true);
+          router.push('/account');
+          return;
+        }
+      } catch (error) {
+        console.error('Error during session check:', error);
+      } finally {
+        setCheckingSession(false);
       }
-      console.log('Session found:', session.user.id);
-      setUserEmail(session.user.email);
-      setUserId(session.user.id);
-      setCheckingSession(false);
     };
     checkSession();
   }, [router, supabase]);
@@ -182,8 +212,14 @@ function UploadProfile() {
     }
   };
 
-  if (checkingSession) {
-    return <div>Loading...</div>;
+  if (checkingSession || isRedirecting) {
+    return (
+      <SmallLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-pulse">&nbsp;</div>
+        </div>
+      </SmallLayout>
+    );
   }
 
   return (
@@ -231,6 +267,20 @@ function UploadProfile() {
             />
           </div>
 
+          
+
+          <div>
+            <input
+              type="text"
+              name="occupation"
+              value={formData.occupation}
+              onChange={handleInputChange}
+              placeholder="Occupation"
+              className="w-full p-2 border rounded-md"
+              required
+            />
+          </div>
+
           <div>
             <select
               name="country"
@@ -246,18 +296,6 @@ function UploadProfile() {
                 </option>
               ))}
             </select>
-          </div>
-
-          <div>
-            <input
-              type="text"
-              name="occupation"
-              value={formData.occupation}
-              onChange={handleInputChange}
-              placeholder="Occupation"
-              className="w-full p-2 border rounded-md"
-              required
-            />
           </div>
 
           <div>

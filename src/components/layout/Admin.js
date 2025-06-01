@@ -41,15 +41,15 @@ function Admin({ children }) {
           
         if (error) throw error;
         
-        // if (!data || data.length === 0) {
-        //   router.push('/upload');
-        //   return;
-        // }
+        if (!data || data.length === 0) {
+          router.push('/upload');
+          return;
+        }
 
-        // if (!data[0].gender) {
-        //   router.push('/upload');
-        //   return;
-        // }
+        if (!data[0].gender) {
+          router.push('/upload');
+          return;
+        }
         
         setProfiles(data);
         setLoading(false);
