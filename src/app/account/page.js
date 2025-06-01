@@ -607,7 +607,7 @@ const Dashboard = () => {
                     whileTap={{ scale: 0.98 }}
                     className={`relative px-4 py-3 rounded-xl font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
                       selectedTab === tab.name
-                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg"
+                        ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg"
                         : "bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg"
                     } ${isCategoryLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     style={{ overflow: 'visible' }}
@@ -716,13 +716,13 @@ const Dashboard = () => {
                       <div className="mb-4 font-semibold text-right text-gray-700 flex flex-col md:flex-row md:items-center md:justify-end gap-4 w-full">
                         <div className="flex items-center gap-2">
                           <button
-                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200 ${!showAllMyInvestments ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${!showAllMyInvestments ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
                             onClick={() => setShowAllMyInvestments(false)}
                           >
                             This Investment Only
                           </button>
                           <button
-                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200 ${showAllMyInvestments ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${showAllMyInvestments ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
                             onClick={() => setShowAllMyInvestments(true)}
                           >
                             All My Investments
