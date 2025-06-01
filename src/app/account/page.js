@@ -816,13 +816,12 @@ const Dashboard = () => {
                   >
                      {/* Ownership Share Pie Chart */}
                      <div className="w-full flex flex-col items-center mt-8">
-                        <div className="font-semibold text-gray-700 mb-2">Ownership Share</div>
-                        <ResponsiveContainer width="100%" height={320}>
+                        <ResponsiveContainer width="100%" height={350}>
                           <PieChart>
                             <defs>
                               <linearGradient id="colorYourShare" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#16a34a" stopOpacity={0.8}/>
+                                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#0284c7" stopOpacity={0.8}/>
                               </linearGradient>
                               <linearGradient id="colorOthers" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
@@ -835,13 +834,15 @@ const Dashboard = () => {
                               nameKey="name"
                               cx="50%"
                               cy="50%"
-                              innerRadius={60}
-                              outerRadius={100}
+                              innerRadius={80}
+                              outerRadius={140}
                               paddingAngle={2}
                               label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
                               labelLine={false}
-                              animationDuration={1500}
+                              animationDuration={2000}
                               animationBegin={0}
+                              isAnimationActive={true}
+                              animationEasing="ease-out"
                             >
                               {ownershipPieData.map((entry, idx) => (
                                 <Cell 
@@ -849,13 +850,16 @@ const Dashboard = () => {
                                   fill={idx === 0 ? "url(#colorYourShare)" : "url(#colorOthers)"}
                                   stroke="#fff"
                                   strokeWidth={2}
+                                  style={{
+                                    filter: 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))'
+                                  }}
                                 />
                               ))}
                             </Pie>
                             <Tooltip 
                               formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']}
                               contentStyle={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                 border: 'none',
                                 borderRadius: '8px',
                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -866,8 +870,14 @@ const Dashboard = () => {
                               verticalAlign="bottom" 
                               height={36}
                               formatter={(value) => (
-                                <span style={{ color: '#4B5563', fontSize: '14px' }}>{value}</span>
+                                <span style={{ 
+                                  color: '#4B5563', 
+                                  fontSize: '14px'
+                                }}>{value}</span>
                               )}
+                              wrapperStyle={{
+                                paddingTop: '20px'
+                              }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
