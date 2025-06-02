@@ -676,9 +676,9 @@ const Dashboard = () => {
 
                     <motion.div 
                       whileHover={{ scale: 1.02 }}
-                      className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 h-[200px]"
+                      className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 h-[200px] flex items-center justify-center"
                     >
-                      <div className="flex flex-col gap-6">
+                      <div className="flex flex-col gap-6 w-full">
                         {userInvestedProjects.length > 0 && (
                           <div className="pb-8">
                             <div className="flex flex-wrap justify-center items-center gap-3">
@@ -818,7 +818,7 @@ const Dashboard = () => {
                   >
                      {/* Ownership Share Pie Chart */}
                      <div className="w-full flex flex-col items-center mt-8">
-                        <ResponsiveContainer className={`${isMobile ? 'w-full' : 'w-full'}`} width="100%" height={isMobile ? 250 : 350}>
+                        <ResponsiveContainer className={`${isMobile ? 'w-full' : 'w-full'}`} width="100%" height={isMobile ? 250 : 330}>
                           <PieChart>
                             <defs>
                               <linearGradient id="colorYourShare" x1="0" y1="0" x2="0" y2="1">
