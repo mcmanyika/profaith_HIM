@@ -26,6 +26,7 @@ export default function CheckoutPageWrapper({ params }) {
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [categoryName, setCategoryName] = useState('');
   const supabase = createClientComponentClient();
   const proposalId = use(params).proposalId;
   
@@ -96,6 +97,8 @@ export default function CheckoutPageWrapper({ params }) {
           .single();
 
         if (error) throw error;
+        setCategoryName(data.category);
+
         if (!data) {
           toast.error('Proposal not found');
           router.push('/');
@@ -106,6 +109,22 @@ export default function CheckoutPageWrapper({ params }) {
           toast.error('This proposal is not currently accepting investments');
           router.push('/');
           return;
+        }
+
+        if (data && (customerName || customerEmail || phoneNumber || categoryName)) {
+          const { error: updateError } = await supabase
+            .from('transactions')
+            .update({
+              customer_name: customerName,
+              customer_email: customerEmail,
+              phone_number: phoneNumber,
+              category_name: categoryName
+            })
+            .eq('proposal_id', proposalId);
+
+          if (updateError) {
+            toast.error('Failed to update transaction');
+          }
         }
 
         setProposal(data);
@@ -160,6 +179,14 @@ export default function CheckoutPageWrapper({ params }) {
                         </span>
                       </dd>
                     </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <dt className="text-gray-600">Category</dt>
+                      <dd className="font-medium text-gray-900">
+                        <span className={`px-3 py-1 rounded-full text-sm`}>
+                          {categoryName}
+                        </span>
+                      </dd>
+                    </div>
                     <div className="flex justify-between items-center py-2 text-sm">
                       <dt className="text-gray-600 text-sm">Created</dt>
                       <dd className="font-medium text-gray-900">
@@ -177,7 +204,7 @@ export default function CheckoutPageWrapper({ params }) {
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Complete Your Investment</h2>
                 {clientSecret ? (
                   <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <CheckoutForm clientSecret={clientSecret} proposalId={proposalId} investorId={investorId} amount={amount} customerName={customerName} customerEmail={customerEmail} phoneNumber={phoneNumber} />
+                    <CheckoutForm clientSecret={clientSecret} proposalId={proposalId} investorId={investorId} amount={amount} customerName={customerName} customerEmail={customerEmail} phoneNumber={phoneNumber} categoryName={categoryName} />
                   </Elements>
                 ) : (
                   <div className="flex justify-center items-center p-8">

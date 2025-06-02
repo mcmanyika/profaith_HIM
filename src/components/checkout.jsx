@@ -18,7 +18,7 @@ import 'react-toastify/dist/ReactToastify.css';
 // This is your test publishable API key.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
-function PaymentForm({ proposalId, investorId, customerName, customerEmail, phoneNumber }) {
+function PaymentForm({ proposalId, investorId, customerName, customerEmail, phoneNumber, categoryName }) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -83,7 +83,8 @@ function PaymentForm({ proposalId, investorId, customerName, customerEmail, phon
             customerName,
             customerEmail,
             phoneNumber,
-            amount
+            amount,
+            categoryName
           }),
         });
 
@@ -219,9 +220,10 @@ PaymentForm.propTypes = {
   customerName: PropTypes.string,
   customerEmail: PropTypes.string,
   phoneNumber: PropTypes.string,
+  categoryName: PropTypes.string,
 };
 
-export default function CheckoutForm({ clientSecret, proposalId, investorId, customerName, customerEmail, phoneNumber }) {
+export default function CheckoutForm({ clientSecret, proposalId, investorId, customerName, customerEmail, phoneNumber, categoryName }) {
 
   const appearance = {
     theme: 'stripe',
@@ -245,6 +247,7 @@ export default function CheckoutForm({ clientSecret, proposalId, investorId, cus
           customerName={customerName}
           customerEmail={customerEmail}
           phoneNumber={phoneNumber}
+          categoryName={categoryName}
         />
       </Elements>
     </div>
@@ -258,4 +261,5 @@ CheckoutForm.propTypes = {
   customerName: PropTypes.string,
   customerEmail: PropTypes.string,
   phoneNumber: PropTypes.string,
+  categoryName: PropTypes.string,
 };

@@ -10,7 +10,7 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    const { paymentIntentId, proposalId, investorId, amount, customerName, customerEmail, phoneNumber } = await req.json();
+    const { paymentIntentId, proposalId, investorId, amount, customerName, customerEmail, phoneNumber, categoryName } = await req.json();
 
     if (!paymentIntentId || !proposalId || !investorId || !amount) {
       return NextResponse.json(
@@ -46,13 +46,14 @@ export async function POST(req) {
     }
 
     // Update the transaction row with customerName, customerEmail, and phoneNumber
-    if (data && (customerName || customerEmail || phoneNumber)) {
+    if (data && (customerName || customerEmail || phoneNumber || categoryName)) {
       const { error: updateError } = await supabase
         .from('transactions')
         .update({
           customer_name: customerName,
           customer_email: customerEmail,
-          phone_number: phoneNumber
+          phone_number: phoneNumber,
+          category_name: categoryName
         })
         .eq('id', data);
       if (updateError) {
