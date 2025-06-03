@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Image from 'next/image'
+import PhoneInput from 'react-phone-number-input'
+import 'react-phone-number-input/style.css'
 import { validatePassword } from '../../../utils/passwordValidation'
 import PasswordStrengthIndicator from '../../../components/PasswordStrengthIndicator'
 import { incrementLoginAttempts, resetLoginAttempts, isAccountLocked, getLoginAttempts } from '../../../utils/loginAttempts'
@@ -13,16 +15,15 @@ import Link from 'next/link'
 import { sessionManager } from '../../../utils/sessionManager'
 import { mfaManager } from '../../../utils/mfaManager'
 import { loginMonitor } from '../../../utils/loginMonitor'
-import { countryCodes } from '../../../utils/countryCodes'
 
 function SignIn() {
   const supabase = createClientComponentClient()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isSignUp, setIsSignUp] = useState(false)
-  const [countryCode, setCountryCode] = useState('+1') // Default to US/Canada
   const [phone, setPhone] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [otpSent, setOtpSent] = useState(false)
   const [countdown, setCountdown] = useState(0)
@@ -38,15 +39,9 @@ function SignIn() {
   const WARNING_THRESHOLD = 1 * 60 * 1000 // Show warning 1 minute before timeout
   const [requiresMFA, setRequiresMFA] = useState(false)
   const [mfaFactorId, setMfaFactorId] = useState(null)
-  const [showCountryList, setShowCountryList] = useState(false)
-  const [searchCountry, setSearchCountry] = useState('')
-
-  const filteredCountries = countryCodes.filter(country => 
-    country.country.toLowerCase().includes(searchCountry.toLowerCase()) ||
-    country.code.includes(searchCountry)
-  );
-
-  const selectedCountry = countryCodes.find(c => c.code === countryCode) || { code: '+1', country: 'United States' };
+  const [emailVerificationSent, setEmailVerificationSent] = useState(false)
+  const [emailVerificationCode, setEmailVerificationCode] = useState('')
+  const [isEmailVerified, setIsEmailVerified] = useState(false)
 
   // Track user activity
   const updateLastActivity = useCallback(() => {
@@ -156,12 +151,24 @@ function SignIn() {
       return
     }
 
-    // Format phone number with country code
-    const formattedPhone = `${countryCode}${phone.replace(/\D/g, '')}`
+    // No need to format phone number as react-phone-number-input handles it
+    const formattedPhone = phone
 
-    if (isSignUp && !displayName) {
-      setError('Full Name')
-      return
+    if (isSignUp) {
+      if (!displayName) {
+        setError('Please enter your full name.')
+        return
+      }
+      if (!email) {
+        setError('Please enter your email address.')
+        return
+      }
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) {
+        setError('Please enter a valid email address.')
+        return
+      }
     }
 
     // Check if account is locked
@@ -179,7 +186,8 @@ function SignIn() {
           options: {
             data: {
               type: 'phone_otp',
-              display_name: isSignUp ? displayName : undefined
+              display_name: isSignUp ? displayName : undefined,
+              email: isSignUp ? email : undefined
             }
           }
         })
@@ -223,6 +231,23 @@ function SignIn() {
           throw error
         }
 
+        // If sign up is successful, send email verification
+        if (isSignUp && data.session) {
+          const { error: emailError } = await supabase.auth.signInWithOtp({
+            email: email,
+            options: {
+              data: {
+                type: 'email_verification'
+              }
+            }
+          })
+          
+          if (emailError) throw emailError
+          
+          setEmailVerificationSent(true)
+          return
+        }
+
         // Check if MFA is required
         if (data.session) {
           const { success, data: mfaData } = await mfaManager.getMFAFactors()
@@ -236,6 +261,43 @@ function SignIn() {
         resetLoginAttempts()
         router.push('/account')
       }
+    } catch (error) {
+      setError(error.message)
+    }
+  }
+
+  const handleEmailVerification = async () => {
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: email,
+        token: emailVerificationCode,
+        type: 'email'
+      })
+
+      if (error) throw error
+
+      setIsEmailVerified(true)
+      resetLoginAttempts()
+      router.push('/account')
+    } catch (error) {
+      setError(error.message)
+    }
+  }
+
+  const handleResendVerificationEmail = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          data: {
+            type: 'email_verification'
+          }
+        }
+      })
+      
+      if (error) throw error
+      
+      setError('Verification email resent successfully.')
     } catch (error) {
       setError(error.message)
     }
@@ -314,12 +376,11 @@ function SignIn() {
         <div className="w-full md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-12">
           <div className="text-center text-gray-600">
             <div className="flex justify-center mb-6">
-              
                 <Image 
                   src='https://sdlrxbcshhjhuaqoidzh.supabase.co/storage/v1/object/sign/images/logo.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InN0b3JhZ2UtdXJsLXNpZ25pbmcta2V5X2ZiMTA0MWNmLWRlYmUtNGZlZC04YWQ3LWFhMTk2ZDJiN2Q0YSJ9.eyJ1cmwiOiJpbWFnZXMvbG9nby5wbmciLCJpYXQiOjE3NDg3OTM1MTgsImV4cCI6MTc4MDMyOTUxOH0.b5KORbht1TJ9m8oIsPMaexeHknIu00diC51ECjxAmvg'
                   alt="Logo" 
-                  width={150} 
-                  height={100}
+                  width={200} 
+                  height={200}
                   priority
                   className="rounded-full object-contain" 
                 />
@@ -350,7 +411,37 @@ function SignIn() {
             </div>
           )}
 
-          {requiresMFA ? (
+          {emailVerificationSent ? (
+            <div className="space-y-4">
+              <p className="text-gray-600 text-center">
+                Please check your email for a verification code. Enter it below to complete your registration.
+              </p>
+              <div>
+                <input
+                  type="text"
+                  value={emailVerificationCode}
+                  onChange={(e) => setEmailVerificationCode(e.target.value)}
+                  placeholder="Enter verification code"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                  maxLength={6}
+                />
+              </div>
+              <button
+                onClick={handleEmailVerification}
+                className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200 font-medium text-sm"
+              >
+                Verify Email
+              </button>
+              <div className="text-center">
+                <button
+                  onClick={handleResendVerificationEmail}
+                  className="text-sm text-gray-600 hover:text-black transition duration-200"
+                >
+                  Resend verification email
+                </button>
+              </div>
+            </div>
+          ) : requiresMFA ? (
             <div className="space-y-4">
               <p className="text-gray-600 text-center">
                 Please enter the 6-digit code from your authenticator app
@@ -376,71 +467,37 @@ function SignIn() {
           ) : (
             <div className="space-y-4">
               {isSignUp && (
-                <div>
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Full Name"
-                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
-                  />
-                </div>
+                <>
+                  <div>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Full Name"
+                      className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email Address"
+                      className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                    />
+                  </div>
+                </>
               )}
               <div className="space-y-2">
-                <div className="flex gap-2">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowCountryList(!showCountryList)}
-                      className="flex items-center gap-2 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition w-40"
-                      disabled={otpSent}
-                    >
-                      <span>{selectedCountry.code}</span>
-                      <span className="text-gray-500">▼</span>
-                    </button>
-                    
-                    {showCountryList && (
-                      <div className="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        <div className="p-2 sticky top-0 bg-white border-b">
-                          <input
-                            type="text"
-                            value={searchCountry}
-                            onChange={(e) => setSearchCountry(e.target.value)}
-                            placeholder="Search country..."
-                            className="w-full p-2 border border-gray-300 rounded"
-                          />
-                        </div>
-                        <div className="py-1">
-                          {filteredCountries.map((country) => (
-                            <button
-                              key={country.code + country.country}
-                              onClick={() => {
-                                setCountryCode(country.code);
-                                setShowCountryList(false);
-                                setSearchCountry('');
-                              }}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-                            >
-                              <span className="text-gray-600">{country.code}</span>
-                              <span>{country.country}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Phone Number"
-                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
-                    disabled={otpSent}
-                  />
-                </div>
-                <div className="text-sm text-gray-500">
-                  Example: {selectedCountry.code} 1234567890
-                </div>
+                <PhoneInput
+                  international
+                  defaultCountry="US"
+                  value={phone}
+                  onChange={setPhone}
+                  placeholder="Enter phone number"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                  disabled={otpSent}
+                />
               </div>
 
               {otpSent && (
