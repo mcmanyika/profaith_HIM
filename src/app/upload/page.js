@@ -17,7 +17,18 @@ function UploadProfile() {
     dateOfBirth: '',
     country: '',
     occupation: '',
-    availability: false
+    availability: false,
+    email: '',
+    phone: ''
+  });
+  const [missingFields, setMissingFields] = useState({
+    gender: true,
+    dateOfBirth: true,
+    country: true,
+    occupation: true,
+    availability: true,
+    email: true,
+    phone: true
   });
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -27,6 +38,9 @@ function UploadProfile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Utility function to check for missing values
+  const isMissing = (value) => !value || value === 'EMPTY' || value === 'null' || value === null;
 
   useEffect(() => {
     const fetchCountries = async () => {
@@ -57,6 +71,8 @@ function UploadProfile() {
           return;
         }
         console.log('Session found:', session.user.id);
+        console.log('Session email:', session.user.email);
+        console.log('Session phone:', session.user.phone);
         setUserEmail(session.user.email);
         setUserId(session.user.id);
 
@@ -72,16 +88,68 @@ function UploadProfile() {
           return;
         }
 
-        // Check if all required fields are filled
-        if (existingProfile && 
-            existingProfile.gender && 
-            existingProfile.date_of_birth && 
-            existingProfile.country && 
-            existingProfile.occupation) {
-          console.log('Profile complete, redirecting to account...');
-          setIsRedirecting(true);
-          router.push('/account');
-          return;
+        // Set initial form data with session user info
+        setFormData(prev => ({
+          ...prev,
+          email: session.user.email || '',
+          phone: session.user.phone || ''
+        }));
+
+        // Track missing fields from session
+        setMissingFields(prev => ({
+          ...prev,
+          email: !session.user.email,
+          phone: !session.user.phone
+        }));
+
+        if (existingProfile) {
+          setHasExistingProfile(true);
+          // Set form data from existing profile
+          setFormData(prev => ({
+            ...prev,
+            gender: existingProfile.gender || '',
+            dateOfBirth: existingProfile.date_of_birth || '',
+            country: existingProfile.country || '',
+            occupation: existingProfile.occupation || '',
+            availability: existingProfile.availability === 'full-time',
+            email: existingProfile.email || session.user.email || '',
+            phone: existingProfile.phone || session.user.phone || ''
+          }));
+          
+          // Track which fields are missing
+          setMissingFields(prev => ({
+            ...prev,
+            gender: !existingProfile.gender,
+            dateOfBirth: !existingProfile.date_of_birth,
+            country: !existingProfile.country,
+            occupation: !existingProfile.occupation,
+            availability: !existingProfile.availability,
+            email: isMissing(existingProfile.email) && isMissing(session.user.email),
+            phone: isMissing(existingProfile.phone) && isMissing(session.user.phone)
+          }));
+
+          // Check if all required fields are filled
+          if (
+            existingProfile.gender &&
+            existingProfile.date_of_birth &&
+            existingProfile.country &&
+            existingProfile.occupation &&
+            existingProfile.availability &&
+            (!isMissing(existingProfile.email) || !isMissing(session.user.email)) &&
+            (!isMissing(existingProfile.phone) || !isMissing(session.user.phone))
+          ) {
+            console.log('Profile complete, redirecting to account...');
+            setIsRedirecting(true);
+            router.push('/account');
+            return;
+          }
+        } else {
+          // If no profile exists, check if we need to redirect based on email/phone
+          if (isMissing(session.user.email) || isMissing(session.user.phone)) {
+            console.log('Email or phone missing, showing upload form...');
+            setCheckingSession(false);
+            return;
+          }
         }
       } catch (error) {
         console.error('Error during session check:', error);
@@ -147,10 +215,10 @@ function UploadProfile() {
           .from('profiles')
           .update({
             full_name: session.user.display_name,
-            email: session.user.email,
+            email: formData.email,
             gender: formData.gender,
             date_of_birth: formData.dateOfBirth,
-            phone_number: session.user.phone,
+            phone_number: formData.phone,
             country: formData.country,
             occupation: formData.occupation,
             user_level: 1,
@@ -167,10 +235,10 @@ function UploadProfile() {
             {
               id: session.user.id,
               full_name: session.user.display_name,
-              email: session.user.email,
+              email: formData.email,
               gender: formData.gender,
               date_of_birth: formData.dateOfBirth,
-              phone_number: session.user.phone,
+              phone_number: formData.phone,
               country: formData.country,
               occupation: formData.occupation,
               user_level: 1,
@@ -193,7 +261,9 @@ function UploadProfile() {
         dateOfBirth: '',
         country: '',
         occupation: '',
-        availability: false
+        availability: false,
+        email: '',
+        phone: ''
       });
       
       router.push('/account');
@@ -215,11 +285,9 @@ function UploadProfile() {
 
   if (checkingSession || isRedirecting) {
     return (
-      <SmallLayout>
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
           <div className="animate-pulse">&nbsp;</div>
         </div>
-      </SmallLayout>
     );
   }
 
@@ -239,15 +307,42 @@ function UploadProfile() {
           theme="dark"
         />
         <h1 className="text-2xl font-bold mb-6 uppercase">Personal Profile</h1>
-        <form onSubmit={handleSubmit} className="space-y-4 w-full  px-4 sm:px-0">
+        <form onSubmit={handleSubmit} className="space-y-4 w-full px-4 sm:px-0">
          
+          <div>
+            <label htmlFor="email" className="block mb-2">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className={`w-full p-2 border rounded-md ${!missingFields.email ? 'bg-gray-100' : ''}`}
+              disabled={!missingFields.email}
+              required={missingFields.email}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="phone" className="block mb-2">Phone Number</label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              className={`w-full p-2 border rounded-md ${!missingFields.phone ? 'bg-gray-100' : ''}`}
+              disabled={!missingFields.phone}
+              required={missingFields.phone}
+            />
+          </div>
+
           <div>
             <select
               name="gender"
               value={formData.gender}
               onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
+              className={`w-full p-2 border rounded-md ${!missingFields.gender ? 'bg-gray-100' : ''}`}
               required
+              disabled={!missingFields.gender}
             >
               <option value="">Select Gender</option>
               <option value="male">Male</option>
@@ -262,13 +357,12 @@ function UploadProfile() {
               name="dateOfBirth"
               value={formData.dateOfBirth}
               onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
+              className={`w-full p-2 border rounded-md ${!missingFields.dateOfBirth ? 'bg-gray-100' : ''}`}
               required
               max={new Date().toISOString().split('T')[0]}
+              disabled={!missingFields.dateOfBirth}
             />
           </div>
-
-          
 
           <div>
             <input
@@ -277,8 +371,9 @@ function UploadProfile() {
               value={formData.occupation}
               onChange={handleInputChange}
               placeholder="Occupation"
-              className="w-full p-2 border rounded-md"
+              className={`w-full p-2 border rounded-md ${!missingFields.occupation ? 'bg-gray-100' : ''}`}
               required
+              disabled={!missingFields.occupation}
             />
           </div>
 
@@ -287,8 +382,9 @@ function UploadProfile() {
               name="country"
               value={formData.country}
               onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
+              className={`w-full p-2 border rounded-md ${!missingFields.country ? 'bg-gray-100' : ''}`}
               required
+              disabled={!missingFields.country}
             >
               <option value="">Select Country</option>
               {countries.map((country) => (
@@ -307,7 +403,8 @@ function UploadProfile() {
                 name="availability"
                 checked={formData.availability}
                 onChange={(e) => setFormData(prev => ({ ...prev, availability: e.target.checked }))}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className={`w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ${!missingFields.availability ? 'bg-gray-100' : ''}`}
+                disabled={!missingFields.availability}
               />
               <label htmlFor="availability" className="ml-2 text-sm text-gray-700">
                 Yes, I would like to participate
@@ -317,10 +414,10 @@ function UploadProfile() {
 
           <button
             type="submit"
-            disabled={loading || isSubmitting || hasExistingProfile}
+            disabled={loading || isSubmitting || (!missingFields.gender && !missingFields.dateOfBirth && !missingFields.country && !missingFields.occupation && !missingFields.availability)}
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed"
           >
-            {loading ? 'Saving...' : hasExistingProfile ? 'Profile Already Exists' : 'Save Profile'}
+            {loading ? 'Saving...' : 'Save Profile'}
           </button>
         </form>
       </>

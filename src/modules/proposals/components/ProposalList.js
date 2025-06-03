@@ -528,7 +528,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
             <button
               key={index}
               onClick={() => handlePageChange(index + 1)}
-              className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${
+              className={`w-10 h-10  p-2 rounded-lg font-medium transition-all duration-200 ${
                 currentPage === index + 1
                   ? 'bg-gray-900 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
