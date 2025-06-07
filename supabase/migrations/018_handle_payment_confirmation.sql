@@ -1,6 +1,5 @@
--- Drop any existing versions of the function
+
 DROP FUNCTION IF EXISTS public.handle_payment_confirmation(text, uuid, uuid, numeric, uuid, text, text, text, text);
-DROP FUNCTION IF EXISTS public.handle_payment_confirmation(text, uuid, uuid, numeric);
 
 CREATE OR REPLACE FUNCTION handle_payment_confirmation(
     p_payment_intent_id TEXT,
@@ -76,5 +75,5 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION handle_payment_confirmation TO authenticated;
-GRANT EXECUTE ON FUNCTION handle_payment_confirmation TO service_role; 
+GRANT EXECUTE ON FUNCTION handle_payment_confirmation(text, uuid, uuid, numeric, uuid, text, text, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION handle_payment_confirmation(text, uuid, uuid, numeric, uuid, text, text, text, text) TO service_role; 

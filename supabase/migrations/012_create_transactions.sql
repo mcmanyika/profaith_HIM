@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS public.transactions;
+
 create table if not exists public.transactions (
     id uuid default gen_random_uuid() primary key,
     user_id uuid references public.profiles(id) on delete set null,
