@@ -471,7 +471,7 @@ const Dashboard = () => {
                 <div className="flex flex-col justify-center h-full">
                   <div className="flex flex-col md:flex-row gap-6">
                     <motion.div 
-                      className="flex w-full md:w-1/3 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                      className="flex w-full  bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
                     >
                       <div className="flex flex-col gap-6 w-full">
                         <div className="flex items-center justify-between">
@@ -507,7 +507,7 @@ const Dashboard = () => {
                       className="flex flex-col md:flex-row gap-6 w-full"
                     >
                       {userInvestedProjects.filter(project => project.category === selectedTab) ? (
-                        <div className="w-full md:w-2/3">
+                        <div className="w-full">
                           <select
                             value={selectedProjectId || ''}
                             onChange={(e) => {
@@ -528,8 +528,15 @@ const Dashboard = () => {
                         </div>
                       ) : null}
 
+                    </motion.div>
+
+                    <motion.div 
+                    
+                      className="flex flex-col md:flex-row gap-6 w-full"
+                    >
+
                       {/* Summary Cards */}
-                      <div className="w-full md:w-2/3 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
+                      <div className="w-full bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
                         <div className="mb-4 font-semibold text-gray-700 uppercase text-sm">Summary</div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                           {/* Investors */}
