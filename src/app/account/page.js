@@ -471,8 +471,7 @@ const Dashboard = () => {
                 <div className="flex flex-col justify-center h-full">
                   <div className="flex flex-col md:flex-row gap-6">
                     <motion.div 
-                      whileHover={{ scale: 1.02 }}
-                      className="flex w-full md:w-1/4 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                      className="flex w-full md:w-1/3 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
                     >
                       <div className="flex flex-col gap-6 w-full">
                         <div className="flex items-center justify-between">
@@ -504,11 +503,11 @@ const Dashboard = () => {
                     </motion.div>
 
                     <motion.div 
-                      whileHover={{ scale: 1.02 }}
-                      className="flex"
+                    
+                      className="flex flex-col md:flex-row gap-6 w-full"
                     >
-                      {userInvestedProjects.filter(project => project.category === selectedTab).length > 0 ? (
-                        <div className="w-full">
+                      {userInvestedProjects.filter(project => project.category === selectedTab) ? (
+                        <div className="w-full md:w-2/3">
                           <select
                             value={selectedProjectId || ''}
                             onChange={(e) => {
@@ -528,6 +527,41 @@ const Dashboard = () => {
                           </select>
                         </div>
                       ) : null}
+
+                      {/* Summary Cards */}
+                      <div className="w-full md:w-2/3 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
+                        <div className="mb-4 font-semibold text-gray-700 uppercase text-sm">Summary</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                          {/* Investors */}
+                          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-center shadow hover:shadow-lg transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <div className="text-xs text-white font-semibold tracking-wider">INVESTORS</div>
+                            <div className="text-base font-bold text-white mt-1">{proposalData?.investor_count || 0}</div>
+                          </div>
+                          {/* Capital Raised */}
+                          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-center shadow hover:shadow-lg transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div className="text-xs text-white font-semibold tracking-wider">CAPITAL RAISED</div>
+                            <div className="text-base font-bold text-white mt-1">
+                              ${proposalData?.amount_raised?.toLocaleString() || '0'}
+                            </div>
+                          </div>
+                          {/* Remaining */}
+                          <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg p-4 text-center shadow hover:shadow-lg transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            <div className="text-xs text-white font-semibold tracking-wider">REMAINING</div>
+                            <div className="text-base font-bold text-white mt-1">
+                              ${((proposalData?.budget || 0) - (proposalData?.amount_raised || 0)).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </motion.div>
                   </div>
                 </div>
@@ -567,42 +601,6 @@ const Dashboard = () => {
                           <Area type="monotone" dataKey="value" stroke="#22c55e" fillOpacity={1} fill="#22c55e" />
                         </AreaChart>
                       </ResponsiveContainer>
-                    </div>
-
-                    
-                    {/* New card to the right of the chart */}
-                    <div className=" bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 h-[400px] flex flex-col items-center justify-center">
-                      <div className="mb-4 font-semibold text-gray-700 uppercase text-sm">Summary</div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
-                        {/* Investors */}
-                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-center shadow hover:shadow-lg transition-all duration-300">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          <div className="text-xs text-white font-semibold tracking-wider">INVESTORS</div>
-                          <div className="text-base font-bold text-white mt-1">{proposalData?.investor_count || 0}</div>
-                        </div>
-                        {/* Capital Raised */}
-                        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-center shadow hover:shadow-lg transition-all duration-300">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <div className="text-xs text-white font-semibold tracking-wider">CAPITAL RAISED</div>
-                          <div className="text-base font-bold text-white mt-1">
-                            ${proposalData?.amount_raised?.toLocaleString() || '0'}
-                          </div>
-                        </div>
-                        {/* Remaining */}
-                        <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg p-4 text-center shadow hover:shadow-lg transition-all duration-300">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                          </svg>
-                          <div className="text-xs text-white font-semibold tracking-wider">REMAINING</div>
-                          <div className="text-base font-bold text-white mt-1">
-                            ${((proposalData?.budget || 0) - (proposalData?.amount_raised || 0)).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
