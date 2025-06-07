@@ -537,7 +537,7 @@ const Dashboard = () => {
 
                       {/* Summary Cards */}
                       <div className="w-full bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
-                        <div className="mb-4 font-semibold text-gray-700 uppercase text-sm">Summary</div>
+                        <div className="mb-4 font-semibold text-gray-700 text-center uppercase text-sm">Summary</div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                           {/* Investors */}
                           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-center shadow hover:shadow-lg transition-all duration-300">
