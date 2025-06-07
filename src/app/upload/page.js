@@ -8,27 +8,32 @@ import 'react-toastify/dist/ReactToastify.css';
 import withAuth from '../../utils/withAuth';
 import { useRouter } from 'next/navigation';
 import withSessionTimeout from '../../utils/withSessionTimeout';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 function UploadProfile() {
+  console.log('UploadProfile component rendered');
   const router = useRouter();
   const supabase = createClientComponentClient();
   const [formData, setFormData] = useState({
+    full_name: '',
     gender: '',
     dateOfBirth: '',
     country: '',
     occupation: '',
     availability: false,
     email: '',
-    phone: ''
+    phone_number: ''
   });
   const [missingFields, setMissingFields] = useState({
+    full_name: true,
     gender: true,
     dateOfBirth: true,
     country: true,
     occupation: true,
     availability: true,
     email: true,
-    phone: true
+    phone_number: true
   });
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -44,6 +49,7 @@ function UploadProfile() {
 
   useEffect(() => {
     const fetchCountries = async () => {
+      console.log('Fetching countries...');
       const { data, error } = await supabase
         .from('countries')
         .select('*')
@@ -56,15 +62,18 @@ function UploadProfile() {
       }
       
       setCountries(data || []);
+      console.log('Countries loaded:', data);
     };
 
     fetchCountries();
   }, [supabase]);
 
   useEffect(() => {
+    console.log('Checking session...');
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('Session result:', session);
         if (!session) {
           console.log('No session found, redirecting to login...');
           router.push('/auth/signin');
@@ -91,15 +100,17 @@ function UploadProfile() {
         // Set initial form data with session user info
         setFormData(prev => ({
           ...prev,
+          full_name: existingProfile?.full_name || session.user.user_metadata?.full_name || '',
           email: session.user.email || '',
-          phone: session.user.phone || ''
+          phone_number: existingProfile?.phone_number || session.user.phone || ''
         }));
 
         // Track missing fields from session
         setMissingFields(prev => ({
           ...prev,
+          full_name: !existingProfile?.full_name && !session.user.user_metadata?.full_name,
           email: !session.user.email,
-          phone: !session.user.phone
+          phone_number: !existingProfile?.phone_number && !session.user.phone
         }));
 
         if (existingProfile) {
@@ -107,25 +118,27 @@ function UploadProfile() {
           // Set form data from existing profile
           setFormData(prev => ({
             ...prev,
+            full_name: existingProfile.full_name || session.user.user_metadata?.full_name || '',
             gender: existingProfile.gender || '',
             dateOfBirth: existingProfile.date_of_birth || '',
             country: existingProfile.country || '',
             occupation: existingProfile.occupation || '',
             availability: existingProfile.availability === 'full-time',
             email: existingProfile.email || session.user.email || '',
-            phone: existingProfile.phone || session.user.phone || ''
+            phone_number: existingProfile.phone_number || session.user.phone || ''
           }));
           
           // Track which fields are missing
           setMissingFields(prev => ({
             ...prev,
+            full_name: !existingProfile.full_name && !session.user.user_metadata?.full_name,
             gender: !existingProfile.gender,
             dateOfBirth: !existingProfile.date_of_birth,
             country: !existingProfile.country,
             occupation: !existingProfile.occupation,
             availability: !existingProfile.availability,
             email: isMissing(existingProfile.email) && isMissing(session.user.email),
-            phone: isMissing(existingProfile.phone) && isMissing(session.user.phone)
+            phone_number: isMissing(existingProfile.phone_number) && isMissing(session.user.phone)
           }));
 
           // Check if all required fields are filled
@@ -136,7 +149,7 @@ function UploadProfile() {
             existingProfile.occupation &&
             existingProfile.availability &&
             (!isMissing(existingProfile.email) || !isMissing(session.user.email)) &&
-            (!isMissing(existingProfile.phone) || !isMissing(session.user.phone))
+            (!isMissing(existingProfile.phone_number) || !isMissing(session.user.phone))
           ) {
             console.log('Profile complete, redirecting to account...');
             setIsRedirecting(true);
@@ -162,6 +175,7 @@ function UploadProfile() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    console.log('Input change:', name, value);
     setFormData(prevState => ({
       ...prevState,
       [name]: value
@@ -170,12 +184,11 @@ function UploadProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Prevent double submission
+    console.log('Form submitted', formData);
     if (isSubmitting) {
+      console.log('Already submitting, abort.');
       return;
     }
-    
     setIsSubmitting(true);
     setLoading(true);
     
@@ -210,15 +223,15 @@ function UploadProfile() {
 
       let result;
       if (existingProfile) {
-        // Update existing profile
+        console.log('Updating existing profile...');
         result = await supabase
           .from('profiles')
           .update({
-            full_name: session.user.display_name,
+            full_name: formData.full_name,
             email: formData.email,
             gender: formData.gender,
             date_of_birth: formData.dateOfBirth,
-            phone_number: formData.phone,
+            phone_number: formData.phone_number,
             country: formData.country,
             occupation: formData.occupation,
             user_level: 1,
@@ -228,17 +241,17 @@ function UploadProfile() {
           .eq('id', session.user.id)
           .select();
       } else {
-        // Insert new profile
+        console.log('Inserting new profile...');
         result = await supabase
           .from('profiles')
           .insert([
             {
               id: session.user.id,
-              full_name: session.user.display_name,
+              full_name: formData.full_name,
               email: formData.email,
               gender: formData.gender,
               date_of_birth: formData.dateOfBirth,
-              phone_number: formData.phone,
+              phone_number: formData.phone_number,
               country: formData.country,
               occupation: formData.occupation,
               user_level: 1,
@@ -257,13 +270,14 @@ function UploadProfile() {
       console.log('Operation successful, data:', result.data);
       toast.success(existingProfile ? 'Profile updated successfully!' : 'Profile created successfully!');
       setFormData({
+        full_name: '',
         gender: '',
         dateOfBirth: '',
         country: '',
         occupation: '',
         availability: false,
         email: '',
-        phone: ''
+        phone_number: ''
       });
       
       router.push('/account');
@@ -283,6 +297,7 @@ function UploadProfile() {
     }
   };
 
+  console.log('Render state:', { checkingSession, isRedirecting, formData, missingFields, loading, isSubmitting });
   if (checkingSession || isRedirecting) {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
@@ -306,9 +321,20 @@ function UploadProfile() {
           pauseOnHover
           theme="dark"
         />
-        <h1 className="text-2xl font-bold mb-6 uppercase">Personal Profile</h1>
+        <h1 className="text-2xl font-bold mb-6 uppercase text-center">Personal Profile</h1>
         <form onSubmit={handleSubmit} className="space-y-4 w-full px-4 sm:px-0">
-         
+          <div>
+            <label htmlFor="full_name" className="block mb-2">Full Name</label>
+            <input
+              type="text"
+              name="full_name"
+              value={formData.full_name}
+              onChange={handleInputChange}
+              className={`w-full p-2 border rounded-md ${!missingFields.full_name ? 'bg-gray-100' : ''}`}
+              required
+              disabled={!missingFields.full_name}
+            />
+          </div>
           <div>
             <label htmlFor="email" className="block mb-2">Email</label>
             <input
@@ -321,20 +347,18 @@ function UploadProfile() {
               required={missingFields.email}
             />
           </div>
-
           <div>
-            <label htmlFor="phone" className="block mb-2">Phone Number</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              className={`w-full p-2 border rounded-md ${!missingFields.phone ? 'bg-gray-100' : ''}`}
-              disabled={!missingFields.phone}
-              required={missingFields.phone}
+            <label htmlFor="phone_number" className="block mb-2">Phone Number</label>
+            <PhoneInput
+              international
+              defaultCountry="US"
+              value={formData.phone_number}
+              onChange={value => setFormData(prev => ({ ...prev, phone_number: value }))}
+              className={`p-2 border rounded-md w-full ${!missingFields.phone_number ? 'bg-gray-100' : ''}`}
+              disabled={!missingFields.phone_number}
+              required
             />
           </div>
-
           <div>
             <select
               name="gender"

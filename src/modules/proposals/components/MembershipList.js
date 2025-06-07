@@ -82,7 +82,7 @@ export default function MembershipList({ showInvestButton = true, showOnlyInvest
           const { data: txs, error: txError } = await supabase
             .from('transactions')
             .select('amount, metadata')
-            .eq('status', 'succeeded')
+            .eq('status', 'completed')
             .in('metadata->>proposal_id', proposalIds);
           if (txError) {
             console.error('Error fetching transactions:', txError);

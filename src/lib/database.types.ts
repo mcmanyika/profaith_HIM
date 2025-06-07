@@ -80,20 +80,50 @@ export interface Database {
                 Row: {
                     id: string
                     full_name: string | null
-                    avatar_url: string | null
-                    updated_at: string | null
+                    email: string | null
+                    phone_number: string | null
+                    gender: string | null
+                    date_of_birth: string | null
+                    country: string | null
+                    occupation: string | null
+                    user_level: number
+                    availability: 'full-time' | 'part-time' | null
+                    last_login: string | null
+                    session_id: string | null
+                    created_at: string
+                    updated_at: string
                 }
                 Insert: {
                     id: string
                     full_name?: string | null
-                    avatar_url?: string | null
-                    updated_at?: string | null
+                    email?: string | null
+                    phone_number?: string | null
+                    gender?: string | null
+                    date_of_birth?: string | null
+                    country?: string | null
+                    occupation?: string | null
+                    user_level?: number
+                    availability?: 'full-time' | 'part-time' | null
+                    last_login?: string | null
+                    session_id?: string | null
+                    created_at?: string
+                    updated_at?: string
                 }
                 Update: {
                     id?: string
                     full_name?: string | null
-                    avatar_url?: string | null
-                    updated_at?: string | null
+                    email?: string | null
+                    phone_number?: string | null
+                    gender?: string | null
+                    date_of_birth?: string | null
+                    country?: string | null
+                    occupation?: string | null
+                    user_level?: number
+                    availability?: 'full-time' | 'part-time' | null
+                    last_login?: string | null
+                    session_id?: string | null
+                    created_at?: string
+                    updated_at?: string
                 }
             }
         }

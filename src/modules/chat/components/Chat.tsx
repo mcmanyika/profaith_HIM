@@ -33,8 +33,7 @@ const Chat: React.FC = () => {
                             .from('profiles')
                             .insert([{
                                 id: user.id,
-                                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
-                                avatar_url: user.user_metadata?.avatar_url
+                                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || ''
                             }]);
 
                         if (insertError) {
@@ -47,7 +46,6 @@ const Chat: React.FC = () => {
                         id: user.id,
                         email: user.email || '',
                         full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
-                        avatar_url: user.user_metadata?.avatar_url || null,
                         online_status: 'online'
                     });
                 }

@@ -62,7 +62,7 @@ function Dashboard() {
                     { data: users }
                 ] = await Promise.all([
                     supabase.from('proposals').select('budget, status, id'),
-                    supabase.from('transactions').select('amount, metadata').eq('status', 'succeeded'),
+                    supabase.from('transactions').select('amount, metadata').eq('status', 'completed'),
                     supabase.from('proposals').select('*', { count: 'exact', head: true }).eq('status', 'active'),
                     supabase.from('proposals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
                     supabase.from('proposals').select('*', { count: 'exact', head: true }),

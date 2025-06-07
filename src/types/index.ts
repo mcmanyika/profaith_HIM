@@ -4,7 +4,6 @@ export interface User {
     first_name: string;
     last_name: string;
     location: string;
-    avatar_url?: string;
     created_at: string;
 }
 

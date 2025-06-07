@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   PaymentElement,
   useStripe,
@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
@@ -22,6 +23,17 @@ function PaymentForm({ proposalId, investorId, customerName, customerEmail, phon
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
+  const supabase = createClientComponentClient();
+  const [userId, setUserId] = useState(null);
+
+  // Fetch userId on mount
+  useEffect(() => {
+    async function fetchUserId() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    }
+    fetchUserId();
+  }, []);
 
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,45 +74,61 @@ function PaymentForm({ proposalId, investorId, customerName, customerEmail, phon
         } else {
           setMessage("An unexpected error occurred. Please try again later.");
         }
-      } else if (paymentIntent) {
-        
-
-        // Validate required fields
-        if (!paymentIntent.id || !proposalId || !investorId || !amount) {
-          throw new Error('Missing required payment data');
-        }
-
-        // Call our API to save the investment data
-        const response = await fetch('/api/confirm-payment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            paymentIntentId: paymentIntent.id,
-            proposalId,
-            investorId,
-            customerName,
-            customerEmail,
-            phoneNumber,
-            amount,
-            categoryName
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          const errorMessage = data.message || 'Failed to save investment data';
-          toast.error(errorMessage);
-          throw new Error(errorMessage);
-        }
-
-        // Show success message before redirect
-        toast.success('Payment successful! Redirecting...');
-        // Redirect to success page with query parameters
-        router.push(`/success?amount=${amount}&proposalId=${proposalId}&investorId=${investorId}`);
+        return;
       }
+
+      // If we get here, the payment was successful
+      if (!paymentIntent) {
+        throw new Error('No payment intent received');
+      }
+
+      // Validate required fields
+      if (!paymentIntent.id || !proposalId || !investorId || !amount) {
+        throw new Error('Missing required payment data');
+      }
+
+      // Get user profile for additional data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email, phone_number')
+        .eq('id', userId)
+        .single();
+
+      // Call our API to save the investment data
+      const response = await fetch('/api/confirm-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentIntentId: paymentIntent.id,
+          proposalId,
+          investorId,
+          userId,
+          amount: parseFloat(amount),
+          customerName: profile?.full_name || customerName || 'Anonymous',
+          customerEmail: profile?.email || customerEmail,
+          phoneNumber: profile?.phone_number || phoneNumber,
+          categoryName: categoryName || 'investment'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Payment confirmation error:', {
+          status: response.status,
+          data: data
+        });
+        const errorMessage = data.message || 'Failed to save investment data';
+        toast.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // Show success message before redirect
+      toast.success('Payment successful! Redirecting...');
+      // Redirect to success page with query parameters
+      router.push(`/success?amount=${amount}&proposalId=${proposalId}&investorId=${investorId}`);
     } catch (error) {
       console.error('Payment error:', error);
       setMessage(error.message || 'An error occurred while processing your payment. Please try again.');

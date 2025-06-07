@@ -57,11 +57,11 @@ export default function ProposalInvestors({ proposalId }) {
             <li key={investment.id} className="py-4">
               <div className="flex items-center space-x-4">
                 <div className="flex-shrink-0">
-                  <img
-                    className="h-8 w-8 rounded-full"
-                    src={investment.investor.avatar_url || `https://ui-avatars.com/api/?name=${investment.investor.full_name}`}
-                    alt=""
-                  />
+                  <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500 text-xs capitalize">
+                      {(investment.investor.full_name || '?')[0].toUpperCase()}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">

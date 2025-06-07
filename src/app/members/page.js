@@ -196,7 +196,7 @@ function MembersPage() {
       const { data: transactions, error: txError } = await supabase
         .from('transactions')
         .select('*')
-        .eq('status', 'succeeded');
+        .eq('status', 'completed');
 
       if (txError) {
         console.error('Error fetching transactions:', txError);
@@ -504,21 +504,11 @@ function MembersPage() {
                 <div className="p-6 flex-1">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
-                      {profile.avatar_url ? (
-                        <Image
-                          src={profile.avatar_url}
-                          alt={profile.full_name || 'Profile'}
-                          width={48}
-                          height={48}
-                          className="rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-500 text-lg capitalize">
-                            {(profile.full_name || '?')[0].toUpperCase()}
-                          </span>
-                        </div>
-                      )}
+                      <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+                        <span className="text-gray-500 text-lg capitalize">
+                          {(profile.full_name || '?')[0].toUpperCase()}
+                        </span>
+                      </div>
                     </div>
                     <div>
                       <h3 className="text-lg font-medium text-gray-900 capitalize">
@@ -565,21 +555,11 @@ function MembersPage() {
                 <div className="border-b border-gray-200 bg-white px-6 py-4 flex justify-between items-center">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
-                      {selectedProfile.avatar_url ? (
-                        <Image
-                          src={selectedProfile.avatar_url}
-                          alt={selectedProfile.full_name || 'Profile'}
-                          width={48}
-                          height={48}
-                          className="rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-500 text-lg capitalize">
-                            {(selectedProfile.full_name || '?')[0].toUpperCase()}
-                          </span>
-                        </div>
-                      )}
+                      <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+                        <span className="text-gray-500 text-lg capitalize">
+                          {(selectedProfile.full_name || '?')[0].toUpperCase()}
+                        </span>
+                      </div>
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold text-gray-900 capitalize">

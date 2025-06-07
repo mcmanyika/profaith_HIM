@@ -178,6 +178,14 @@ function PaymentForm({ proposal, onClose, onSubmit }) {
 
       // Confirm payment on the server
       const { data: { user } } = await supabase.auth.getUser();
+      
+      // Get user's profile for additional data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email, phone_number')
+        .eq('id', user.id)
+        .single();
+
       const confirmResponse = await fetch('/api/confirm-payment', {
         method: 'POST',
         headers: {
@@ -187,6 +195,12 @@ function PaymentForm({ proposal, onClose, onSubmit }) {
           paymentIntentId: paymentIntentId,
           proposalId: proposal.id,
           investorId: user.id,
+          userId: user.id,
+          amount: parseFloat(amount),
+          customerName: profile?.full_name || 'Anonymous',
+          customerEmail: profile?.email,
+          phoneNumber: profile?.phone_number,
+          categoryName: proposal.category || 'investment'
         }),
       });
 
@@ -199,13 +213,6 @@ function PaymentForm({ proposal, onClose, onSubmit }) {
         });
         throw new Error(confirmData.message || 'Failed to confirm payment');
       }
-
-      // Get user's profile for the success message
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, email')
-        .eq('id', user.id)
-        .single();
 
       // Get updated proposal data
       const { data: updatedProposal } = await supabase

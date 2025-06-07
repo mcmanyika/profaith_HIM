@@ -161,7 +161,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
           const { data: txs, error: txError } = await supabase
             .from('transactions')
             .select('amount, metadata')
-            .eq('status', 'succeeded')
+            .eq('status', 'completed')
             .in('metadata->>proposal_id', proposalIds);
           if (txError) {
             console.error('Error fetching transactions:', txError);
@@ -225,7 +225,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
           .from('transactions')
           .select('id')
           .eq('metadata->>investor_id', user.id)
-          .eq('status', 'succeeded')
+          .eq('status', 'completed')
           .limit(1);
         setHasAnyPayments(transactions && transactions.length > 0);
         // Check if user has already paid for membership (transactions for membership proposals)
@@ -237,7 +237,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
         const { data: membershipTxs } = await supabase
           .from('transactions')
           .select('id, metadata')
-          .eq('status', 'succeeded')
+          .eq('status', 'completed')
           .eq('metadata->>investor_id', user.id)
           .in('metadata->>proposal_id', membershipProposalIds);
         setHasMembershipPayment(membershipTxs && membershipTxs.length > 0);

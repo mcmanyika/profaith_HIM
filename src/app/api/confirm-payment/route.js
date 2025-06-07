@@ -10,9 +10,9 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    const { paymentIntentId, proposalId, investorId, amount, customerName, customerEmail, phoneNumber, categoryName } = await req.json();
+    const { paymentIntentId, proposalId, investorId, userId, amount, customerName, customerEmail, phoneNumber, categoryName } = await req.json();
 
-    if (!paymentIntentId || !proposalId || !investorId || !amount) {
+    if (!paymentIntentId || !proposalId || !investorId || !amount || !customerName || !customerEmail || !phoneNumber || !categoryName) {
       return NextResponse.json(
         { message: 'Missing required fields' },
         { status: 400 }
@@ -34,32 +34,43 @@ export async function POST(req) {
       p_payment_intent_id: paymentIntentId,
       p_proposal_id: proposalId,
       p_investor_id: investorId,
-      p_amount: amount
+      p_amount: amount,
+      p_user_id: userId,
+      p_customer_name: customerName,
+      p_customer_email: customerEmail,
+      p_phone_number: phoneNumber,
+      p_category_name: categoryName
     });
 
     if (error) {
-      console.error('Error saving payment data:', error);
+      console.error('Error saving payment data:', {
+        error,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        errorCode: error.code,
+        params: {
+          paymentIntentId,
+          proposalId,
+          investorId,
+          amount,
+          userId,
+          customerName,
+          customerEmail,
+          phoneNumber,
+          categoryName
+        }
+      });
       return NextResponse.json(
-        { message: 'Error saving payment data' },
+        { 
+          message: 'Error saving payment data',
+          error: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        },
         { status: 500 }
       );
-    }
-
-    // Update the transaction row with customerName, customerEmail, and phoneNumber
-    if (data && (customerName || customerEmail || phoneNumber || categoryName)) {
-      const { error: updateError } = await supabase
-        .from('transactions')
-        .update({
-          customer_name: customerName,
-          customer_email: customerEmail,
-          phone_number: phoneNumber,
-          category_name: categoryName
-        })
-        .eq('id', data);
-      if (updateError) {
-        console.error('Error updating transaction with customer info:', updateError);
-        // Not fatal, so don't return error
-      }
     }
 
     return NextResponse.json(

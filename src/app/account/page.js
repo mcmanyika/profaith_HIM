@@ -55,6 +55,9 @@ function getMonthlyTotals(transactions) {
 }
 
 const Dashboard = () => {
+  // 1. All useState, useMemo, useCallback, useEffect, etc. go here, at the top of the component
+
+  // State declarations
   const [selectedTab, setSelectedTab] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("selectedTab") || "REAL ESTATE";
@@ -79,24 +82,6 @@ const Dashboard = () => {
   const [hasMembershipPayment, setHasMembershipPayment] = useState(false);
   const [showMembershipModal, setShowMembershipModal] = useState(false);
   const supabase = createClientComponentClient();
-  const documentCategories = [
-    { 
-      id: 'title_deeds', 
-      label: 'Title Deeds',
-      icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2'
-    },
-    { 
-      id: 'bank_statements', 
-      label: 'Bank Statements',
-      icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-    },
-    { 
-      id: 'letters', 
-      label: 'Letters / Documents',
-      icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-    }
-  ];
-  const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const [userTransactions, setUserTransactions] = useState([]);
@@ -104,432 +89,12 @@ const Dashboard = () => {
   const [allTransactions, setAllTransactions] = useState([]);
   const [showAllMyInvestments, setShowAllMyInvestments] = useState(false);
   const [categoryCounts, setCategoryCounts] = useState({});
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+  const [cachedData, setCachedData] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // Optimized user stats update function
-  const updateUserStats = useCallback(async (transactions, selectedId) => {
-    if (!user || !selectedId) {
-      setUserStats({
-        totalInvestment: 0,
-        numberOfProjects: 0,
-        currentProjectInvestment: 0
-      });
-      return;
-    }
-
-    // Calculate totalInvestment and numberOfProjects from transactions (all proposals)
-    const stats = {
-      totalInvestment: 0,
-      numberOfProjects: 0,
-      currentProjectInvestment: 0
-    };
-
-    if (transactions) {
-      // Calculate totalInvestment from transactions
-      stats.totalInvestment = transactions
-        .filter(tx => tx.metadata?.investor_id === user.id)
-        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-
-      // Calculate numberOfProjects from unique proposal_ids in transactions
-      const uniqueProjects = new Set(
-        transactions
-          .filter(tx => tx.metadata?.investor_id === user.id)
-          .map(tx => tx.metadata?.proposal_id)
-      );
-      stats.numberOfProjects = uniqueProjects.size;
-
-      // Calculate currentProjectInvestment for selected project
-      stats.currentProjectInvestment = transactions
-        .filter(tx =>
-          tx.metadata?.proposal_id === selectedId &&
-          tx.metadata?.investor_id === user.id
-        )
-        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-    }
-
-    setUserStats(stats);
-  }, [user]);
-
-  // Improved auth subscription handling
-  useEffect(() => {
-    let subscription;
-    
-    const setupAuth = async () => {
-      try {
-        // Get the current session
-        const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user || null);
-
-        // Set up auth state change listener
-        const { data } = await supabase.auth.onAuthStateChange((_event, session) => {
-          setUser(session?.user || null);
-        });
-        
-        subscription = data?.subscription;
-      } catch (error) {
-        console.error('Auth error:', error);
-        setError(error.message);
-        toast.error('Authentication error: ' + error.message);
-      }
-    };
-
-    setupAuth();
-
-    return () => {
-      if (subscription?.unsubscribe) {
-        subscription.unsubscribe();
-      }
-    };
-  }, [supabase]);
-
-  // Improved proposal data fetching
-  useEffect(() => {
-    const fetchProposalData = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-
-        if (selectedTab === "MEMBERSHIP") {
-          // 1. Get all MEMBERSHIP proposal IDs
-          const { data: membershipProposals, error: proposalError } = await supabase
-            .from('proposals')
-            .select('id, budget, title, amount_raised, category')
-            .eq('category', 'MEMBERSHIP');
-
-          if (proposalError) throw proposalError;
-          if (!membershipProposals || membershipProposals.length === 0) {
-            setProposalData(null);
-            return;
-          }
-
-          const proposalIds = membershipProposals.map(p => p.id);
-
-          // 2. Fetch all successful transactions for these proposals
-          const { data: transactions, error: transactionsError } = await supabase
-            .from('transactions')
-            .select('amount, metadata')
-            .eq('status', 'succeeded');
-
-          if (transactionsError) throw transactionsError;
-
-          // 3. Filter transactions for membership proposals
-          const filtered = transactions.filter(
-            tx => proposalIds.includes(tx.metadata?.proposal_id)
-          );
-
-          // 4. Count unique investors and sum amounts
-          const uniqueInvestors = new Set(filtered.map(tx => tx.metadata?.investor_id)).size;
-          const totalRaised = filtered.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-          const totalBudget = membershipProposals.reduce((sum, p) => sum + (p.budget || 0), 0);
-
-          setProposalData({
-            // Use the first proposal for title/category, but override budget/amount_raised/investor_count
-            ...membershipProposals[0],
-            budget: totalBudget,
-            amount_raised: totalRaised,
-            investor_count: uniqueInvestors
-          });
-          return;
-        }
-
-        let query = supabase
-          .from('proposals')
-          .select('id, title, budget, amount_raised, category, investor_count')
-          .eq('status', 'active');
-
-        if (selectedProjectId) {
-          query = query.eq('id', selectedProjectId);
-        } else {
-          query = query
-            .eq('category', selectedTab)
-            .order('created_at', { ascending: false })
-            .limit(1);
-        }
-
-        const { data: proposal, error: proposalError } = await query;
-
-        if (proposalError) {
-          throw proposalError;
-        }
-
-        if (!proposal || proposal.length === 0) {
-          setProposalData(null);
-          return;
-        }
-
-        // Fetch all successful transactions for this proposal
-        const { data: transactions, error: transactionsError } = await supabase
-          .from('transactions')
-          .select('amount, metadata')
-          .eq('status', 'succeeded');
-
-        if (transactionsError) {
-          throw transactionsError;
-        }
-
-        // Filter transactions for the current proposal
-        const filtered = transactions.filter(
-          tx => tx.metadata?.proposal_id === proposal[0].id
-        );
-
-        // Calculate capital raised
-        const capitalRaised = filtered.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-
-        // Calculate unique investors
-        const uniqueInvestors = new Set(filtered.map(tx => tx.metadata?.investor_id)).size;
-
-        setProposalData({
-          ...proposal[0],
-          amount_raised: capitalRaised,
-          investor_count: uniqueInvestors
-        });
-      } catch (error) {
-        console.error('Error fetching proposal data:', error);
-        setError(error.message);
-        setProposalData(null);
-        toast.error('Failed to fetch proposal data: ' + error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProposalData();
-  }, [supabase, selectedTab, user, selectedProjectId]);
-
-  // Improved document fetching
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      if (!user) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('documents')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setDocuments(data || []);
-      } catch (error) {
-        console.error('Error fetching documents:', error);
-        setError(error.message);
-        setDocuments([]);
-        toast.error('Failed to fetch documents: ' + error.message);
-      }
-    };
-
-    fetchDocuments();
-  }, [user, supabase]);
-
-  // Improved document action handling
-  const handleDocumentAction = async (document, action) => {
-    try {
-      if (action === 'download') {
-        const { data, error } = await supabase.storage
-          .from('project-documents')
-          .download(document.file_path);
-
-        if (error) throw error;
-
-        const url = URL.createObjectURL(data);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = document.file_name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success('Document downloaded successfully');
-      } else if (action === 'view') {
-        const { data, error } = await supabase.storage
-          .from('project-documents')
-          .download(document.file_path);
-
-        if (error) throw error;
-
-        setSelectedDocument({
-          ...document,
-          data
-        });
-        toast.success('Document loaded successfully');
-      }
-    } catch (error) {
-      console.error('Error handling document:', error);
-      toast.error('Failed to process document: ' + error.message);
-    }
-  };
-
-  // Improved tab selection handling
-  const handleTabSelect = async (tab) => {
-    try {
-      setIsCategoryLoading(true);
-      setSelectedTab(tab);
-      setSelectedProjectId(null);
-      setProposalData(null);
-    } catch (error) {
-      console.error('Error switching category:', error);
-      setError(error.message);
-    } finally {
-      setIsCategoryLoading(false);
-    }
-  };
-
-  // Automatically select the first project in the selected category by default
-  useEffect(() => {
-    const projectsInCategory = userInvestedProjects
-      .filter(proj => proj && proj.category === selectedTab);
-
-    if (projectsInCategory.length > 0 && !selectedProjectId) {
-      setSelectedProjectId(projectsInCategory[0].id);
-    }
-  }, [userInvestedProjects, selectedTab, selectedProjectId]);
-
-  // Improved project selection handling
-  const handleProjectSelect = (project) => {
-    setSelectedProjectId(project.id);
-    setSelectedTab(project.category);
-  };
-
-  // Screen size handling
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
-
-  // Component mount handling
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  // Calculate ownership share percentage with error handling
-  const ownershipShare = useMemo(() => {
-    try {
-      if (!proposalData?.amount_raised || !userStats.currentProjectInvestment) return 0;
-      const share = (userStats.currentProjectInvestment / proposalData.amount_raised) * 100;
-      return isNaN(share) ? 0 : share.toFixed(1);
-    } catch (error) {
-      console.error('Error calculating ownership share:', error);
-      return 0;
-    }
-  }, [proposalData?.amount_raised, userStats.currentProjectInvestment]);
-
-  // Fetch user transactions and invested projects from transactions table
-  useEffect(() => {
-    const fetchUserTransactionsAndProjects = async () => {
-      if (!user) return;
-      try {
-        setIsLoading(true);
-        // 1. Fetch all successful transactions for this user
-        const { data: transactions, error: txError } = await supabase
-          .from('transactions')
-          .select('amount, metadata')
-          .eq('status', 'succeeded');
-        if (txError) throw txError;
-        // 2. Filter for this user's transactions
-        const userTxs = (transactions || []).filter(
-          tx => tx.metadata?.investor_id === user.id
-        );
-        setUserTransactions(userTxs);
-        // 3. Extract unique proposal_ids
-        const uniqueProposalIds = [
-          ...new Set(userTxs.map(tx => tx.metadata?.proposal_id).filter(Boolean))
-        ];
-        // 4. Fetch proposals for these IDs
-        let proposals = [];
-        if (uniqueProposalIds.length > 0) {
-          const { data: proposalsData, error: proposalsError } = await supabase
-            .from('proposals')
-            .select('id, title, category, budget, amount_raised')
-            .in('id', uniqueProposalIds);
-          if (proposalsError) throw proposalsError;
-          proposals = proposalsData;
-        }
-        // 5. Filter by selectedTab
-        const filtered = proposals.filter(p => p.category === selectedTab);
-        setUserInvestedProjects(filtered);
-        // 6. Update userStats using only transactions
-        updateUserStats(userTxs, selectedProjectId);
-        // 7. Fetch all membership proposal IDs
-        const { data: membershipProposals, error: membershipError } = await supabase
-          .from('proposals')
-          .select('id')
-          .eq('category', 'MEMBERSHIP');
-        if (membershipError) throw membershipError;
-        const membershipProposalIds = (membershipProposals || []).map(p => p.id);
-        // 8. Set hasMembershipPayment if user has a transaction for any membership proposal
-        const hasMembership = userTxs.some(
-          tx => membershipProposalIds.includes(tx.metadata?.proposal_id)
-        );
-        setHasMembershipPayment(hasMembership);
-      } catch (error) {
-        console.error('Error fetching user invested projects:', error);
-        setUserInvestedProjects([]);
-        updateUserStats([], selectedProjectId);
-        setHasMembershipPayment(false);
-        toast.error('Failed to fetch invested projects: ' + error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchUserTransactionsAndProjects();
-  }, [user, supabase, selectedTab, selectedProjectId, updateUserStats]);
-
-  useEffect(() => {
-    if (selectedTab) {
-      localStorage.setItem("selectedTab", selectedTab);
-    }
-  }, [selectedTab]);
-
-  // Fetch all succeeded transactions for the chart
-  useEffect(() => {
-    const fetchAllTransactions = async () => {
-      try {
-        const { data: transactions, error } = await supabase
-          .from('transactions')
-          .select('amount, metadata, created_at')
-          .eq('status', 'succeeded');
-        if (error) throw error;
-        setAllTransactions(transactions || []);
-      } catch (err) {
-        console.error('Error fetching all transactions:', err);
-        setAllTransactions([]);
-      }
-    };
-    fetchAllTransactions();
-  }, [supabase]);
-
-  // Use only the logged-in user's transactions for the Payments Overview chart
-  const paymentHistory = useMemo(() => {
-    if (!user) return [];
-    let filteredTxs = allTransactions.filter(tx => {
-      let metadata = tx.metadata;
-      if (typeof metadata === 'string') {
-        try { metadata = JSON.parse(metadata); } catch { return false; }
-      }
-      if (!metadata?.investor_id || metadata.investor_id !== user.id) return false;
-      if (!showAllMyInvestments && selectedProjectId) {
-        return metadata.proposal_id === selectedProjectId;
-      }
-      return true;
-    });
-    return getMonthlyTotals(filteredTxs);
-  }, [allTransactions, user, selectedProjectId, showAllMyInvestments]);
-
-  console.log('allTransactions', allTransactions);
-  console.log('paymentHistory', paymentHistory);
-  if (allTransactions && allTransactions.length > 0) {
-    console.log('Sample transaction', allTransactions[0]);
-  }
-
-  // Ownership share pie chart data
+  // Memoized values and callbacks
   const ownershipPieData = useMemo(() => {
     const userShare = userStats.currentProjectInvestment || 0;
     const total = proposalData?.amount_raised || 0;
@@ -539,34 +104,298 @@ const Dashboard = () => {
       { name: 'Others', value: rest },
     ];
   }, [userStats.currentProjectInvestment, proposalData?.amount_raised]);
+
   const pieColors = ['#22c55e', '#e5e7eb'];
 
-  // Fetch project counts per category
+  const updateUserStats = useCallback(async (transactions, selectedId) => {
+    if (!user || !selectedId) {
+      setUserStats({
+        totalInvestment: 0,
+        numberOfProjects: 0,
+        currentProjectInvestment: 0
+      });
+      return;
+    }
+    const stats = {
+      totalInvestment: 0,
+      numberOfProjects: 0,
+      currentProjectInvestment: 0
+    };
+    if (transactions) {
+      stats.totalInvestment = transactions
+        .filter(tx => tx.metadata?.investor_id === user.id)
+        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+      const uniqueProjects = new Set(
+        transactions
+          .filter(tx => tx.metadata?.investor_id === user.id)
+          .map(tx => tx.metadata?.proposal_id)
+      );
+      stats.numberOfProjects = uniqueProjects.size;
+      stats.currentProjectInvestment = transactions
+        .filter(tx =>
+          tx.metadata?.proposal_id === selectedId &&
+          tx.metadata?.investor_id === user.id
+        )
+        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    }
+    setUserStats(stats);
+  }, [user]);
+
+  // All useEffect hooks at the top
   useEffect(() => {
-    const fetchCategoryCounts = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('proposals')
-          .select('category, id')
-          .eq('status', 'active');
-        if (error) throw error;
-        const counts = {};
-        (data || []).forEach(p => {
-          counts[p.category] = (counts[p.category] || 0) + 1;
-        });
-        setCategoryCounts(counts);
-      } catch (err) {
-        console.error('Error fetching category counts:', err);
-        setCategoryCounts({});
+    let subscription;
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      setAuthLoading(false);
+    };
+    getSession();
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      setAuthLoading(false);
+    });
+    subscription = data?.subscription;
+    return () => {
+      if (subscription?.unsubscribe) {
+        subscription.unsubscribe();
       }
     };
-    fetchCategoryCounts();
   }, [supabase]);
 
-  if (!hasMounted) return null;
+  useEffect(() => {
+    if (selectedTab) {
+      localStorage.setItem("selectedTab", selectedTab);
+    }
+  }, [selectedTab]);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const fetchAllData = async () => {
+      if (cachedData && Date.now() - cachedData.timestamp < 30000) {
+        setUserTransactions(cachedData.userTransactions);
+        setAllTransactions(cachedData.allTransactions);
+        setUserInvestedProjects(cachedData.userProjects);
+        setCategoryCounts(cachedData.categoryCounts);
+        setHasMembershipPayment(cachedData.hasMembership);
+        updateUserStats(cachedData.userTransactions, selectedProjectId);
+        setIsInitialLoading(false);
+        return;
+      }
+      try {
+        setIsDataLoading(true);
+        const [transactionsResponse, proposalsResponse] = await Promise.all([
+          supabase
+            .from('transactions')
+            .select('amount, metadata, created_at')
+            .eq('status', 'completed'),
+          supabase
+            .from('proposals')
+            .select('id, title, category, budget, amount_raised, status')
+            .eq('status', 'active')
+        ]);
+        if (transactionsResponse.error) throw transactionsResponse.error;
+        if (proposalsResponse.error) throw proposalsResponse.error;
+        const allTransactions = transactionsResponse.data || [];
+        const allProposals = proposalsResponse.data || [];
+        const userTxs = allTransactions.filter(
+          tx => tx.metadata?.investor_id === user.id
+        );
+        const uniqueProposalIds = [
+          ...new Set(userTxs.map(tx => tx.metadata?.proposal_id).filter(Boolean))
+        ];
+        const userProjects = allProposals.filter(p => 
+          uniqueProposalIds.includes(p.id)
+        );
+        const counts = {};
+        allProposals.forEach(p => {
+          counts[p.category] = (counts[p.category] || 0) + 1;
+        });
+        const membershipProposals = allProposals.filter(p => p.category === 'MEMBERSHIP');
+        const hasMembership = userTxs.some(
+          tx => membershipProposals.some(p => p.id === tx.metadata?.proposal_id)
+        );
+        const processedData = {
+          userTransactions: userTxs,
+          allTransactions,
+          userProjects,
+          categoryCounts: counts,
+          hasMembership,
+          timestamp: Date.now()
+        };
+        setCachedData(processedData);
+        setUserTransactions(userTxs);
+        setAllTransactions(allTransactions);
+        setUserInvestedProjects(userProjects);
+        setCategoryCounts(counts);
+        setHasMembershipPayment(hasMembership);
+        updateUserStats(userTxs, selectedProjectId);
+      } catch (error) {
+        setError(error.message);
+        toast.error('Failed to fetch data: ' + error.message);
+      } finally {
+        setIsDataLoading(false);
+        setIsInitialLoading(false);
+      }
+    };
+    fetchAllData();
+  }, [authLoading, user, supabase, selectedProjectId, updateUserStats, cachedData]);
+
+  useEffect(() => {
+    const projectsInCategory = userInvestedProjects.filter(proj => proj && proj.category === selectedTab);
+    if (projectsInCategory.length > 0 && !selectedProjectId) {
+      setSelectedProjectId(projectsInCategory[0].id);
+    }
+  }, [userInvestedProjects, selectedTab, selectedProjectId]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const fetchProposalData = async () => {
+      try {
+        setIsLoading(true);
+        if (selectedTab === "MEMBERSHIP") {
+          const { data: membershipProposals, error: proposalError } = await supabase
+            .from('proposals')
+            .select('id, budget, title, amount_raised, category')
+            .eq('category', 'MEMBERSHIP');
+          if (proposalError) throw proposalError;
+          if (!membershipProposals || membershipProposals.length === 0) {
+            setProposalData(null);
+            return;
+          }
+          const proposalIds = membershipProposals.map(p => p.id);
+          const { data: transactions, error: transactionsError } = await supabase
+            .from('transactions')
+            .select('amount, metadata')
+            .eq('status', 'completed');
+          if (transactionsError) throw transactionsError;
+          const filtered = transactions.filter(
+            tx => proposalIds.includes(tx.metadata?.proposal_id)
+          );
+          const uniqueInvestors = new Set(filtered.map(tx => tx.metadata?.investor_id)).size;
+          const totalRaised = filtered.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+          const totalBudget = membershipProposals.reduce((sum, p) => sum + (p.budget || 0), 0);
+          setProposalData({
+            ...membershipProposals[0],
+            budget: totalBudget,
+            amount_raised: totalRaised,
+            investor_count: uniqueInvestors
+          });
+          return;
+        }
+        let query = supabase
+          .from('proposals')
+          .select('id, title, budget, amount_raised, category, investor_count')
+          .eq('status', 'active');
+        if (selectedProjectId) {
+          query = query.eq('id', selectedProjectId);
+        } else {
+          query = query
+            .eq('category', selectedTab)
+            .order('created_at', { ascending: false })
+            .limit(1);
+        }
+        const { data: proposal, error: proposalError } = await query;
+        if (proposalError) {
+          throw proposalError;
+        }
+        if (!proposal || proposal.length === 0) {
+          setProposalData(null);
+          return;
+        }
+        const { data: transactions, error: transactionsError } = await supabase
+          .from('transactions')
+          .select('amount, metadata')
+          .eq('status', 'completed');
+        if (transactionsError) {
+          throw transactionsError;
+        }
+        const filtered = transactions.filter(
+          tx => tx.metadata?.proposal_id === proposal[0].id
+        );
+        const capitalRaised = filtered.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+        const uniqueInvestors = new Set(filtered.map(tx => tx.metadata?.investor_id)).size;
+        setProposalData({
+          ...proposal[0],
+          amount_raised: capitalRaised,
+          investor_count: uniqueInvestors
+        });
+      } catch (error) {
+        setError(error.message);
+        setProposalData(null);
+        toast.error('Failed to fetch proposal data: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProposalData();
+  }, [authLoading, supabase, selectedTab, user, selectedProjectId]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const fetchDocuments = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setDocuments(data || []);
+      } catch (error) {
+        setError(error.message);
+        setDocuments([]);
+        toast.error('Failed to fetch documents: ' + error.message);
+      }
+    };
+    fetchDocuments();
+  }, [authLoading, user, supabase]);
+
+  const ownershipShare = useMemo(() => {
+    try {
+      if (!proposalData?.amount_raised || !userStats.currentProjectInvestment) return 0;
+      const share = (userStats.currentProjectInvestment / proposalData.amount_raised) * 100;
+      return isNaN(share) ? 0 : share.toFixed(1);
+    } catch (error) {
+      return 0;
+    }
+  }, [proposalData?.amount_raised, userStats.currentProjectInvestment]);
+
+  const handleTabSelect = (tab) => {
+    setIsCategoryLoading(true);
+    setSelectedTab(tab);
+    setSelectedProjectId(null);
+    setProposalData(null);
+    setIsCategoryLoading(false);
+  };
+
+  const handleProjectSelect = (project) => {
+    setSelectedProjectId(project.id);
+    setSelectedTab(project.category);
+  };
+
+  // Compute chart data based on the toggle
+  const chartData = showAllMyInvestments
+    ? getMonthlyTotals(userTransactions)
+    : getMonthlyTotals(userTransactions.filter(tx => tx.metadata?.proposal_id === selectedProjectId));
+
+  // 3. The rest of your render logic goes here
+  // ... existing code ...
 
   return (
-    <AuthLayout>
+    <Admin>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4 sm:px-6 lg:px-8">
         
         {/* Error Display */}
@@ -651,7 +480,7 @@ const Dashboard = () => {
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
-                            <span className="font-thin text-gray-600 text-sm uppercase">{user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User'}</span>
+                            <span className="font-thin text-gray-600 text-sm uppercase">{user?.user_metadata?.full_name  || 'User'}</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -676,31 +505,29 @@ const Dashboard = () => {
 
                     <motion.div 
                       whileHover={{ scale: 1.02 }}
-                      className="flex-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 h-[200px] flex items-center justify-center"
+                      className="flex"
                     >
-                      <div className="flex flex-col gap-6 w-full">
-                        {userInvestedProjects.length > 0 && (
-                          <div className="pb-8">
-                            <div className="flex flex-wrap justify-center items-center gap-3">
-                              {userInvestedProjects.map((project) => (
-                                <motion.button
-                                  key={project.id}
-                                  onClick={() => handleProjectSelect(project)}
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  className={`w-full md:flex-1 px-6 py-4 rounded-xl text-xs font-medium transition-all duration-300 ${
-                                    selectedProjectId === project.id
-                                      ? "bg-gradient-to-r from-gray-800 to-gray-700 text-white shadow-lg"
-                                      : "bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg"
-                                  }`}
-                                >
+                      {userInvestedProjects.filter(project => project.category === selectedTab).length > 0 ? (
+                        <div className="w-full">
+                          <select
+                            value={selectedProjectId || ''}
+                            onChange={(e) => {
+                              const project = userInvestedProjects.find(p => p.id === e.target.value);
+                              if (project) handleProjectSelect(project);
+                            }}
+                            className="w-full p-4 rounded-xl text-sm font-medium bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                          >
+                            <option value="">Your Projects</option>
+                            {userInvestedProjects
+                              .filter(project => project.category === selectedTab)
+                              .map((project) => (
+                                <option key={project.id} value={project.id}>
                                   {project.title}
-                                </motion.button>
+                                </option>
                               ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                          </select>
+                        </div>
+                      ) : null}
                     </motion.div>
                   </div>
                 </div>
@@ -732,8 +559,8 @@ const Dashboard = () => {
                         </div>
                       </div>
                       {/* Payments Area Chart (Totals by Month) */}
-                      <ResponsiveContainer width="100%" height={300}>
-                        <AreaChart data={userStats.totalInvestment ? paymentHistory : [{month: 'No data', value: 0}]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <ResponsiveContainer width="100%" height={250}>
+                        <AreaChart data={userStats.totalInvestment ? chartData : [{month: 'No data', value: 0}]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                           <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                           <YAxis tick={{ fontSize: 12 }} />
                           <Tooltip formatter={v => `$${v.toLocaleString()}`} />
@@ -849,7 +676,7 @@ const Dashboard = () => {
                               {ownershipPieData.map((entry, idx) => (
                                 <Cell 
                                   key={`cell-${idx}`} 
-                                  fill={idx === 0 ? "url(#colorYourShare)" : "url(#colorOthers)"}
+                                  fill={pieColors[idx]}
                                   stroke="#fff"
                                   strokeWidth={2}
                                   style={{
@@ -896,13 +723,18 @@ const Dashboard = () => {
                     <div className="font-semibold mb-2 capitalize text-sm">
                       You are not a paid member yet.
                     </div>
-                     {/* Membership Modal Trigger */}
-                        <button
-                          className="mb-4 px-4 py-2 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded hover:from-cyan-600 hover:to-cyan-700 transition-all duration-300 shadow-sm hover:shadow-md capitalize text-sm"
-                          onClick={() => setShowMembershipModal(true)}
-                        >
-                          Click here to make a payment
-                        </button>
+                    <button
+                      onClick={() => {
+                        if (proposalData) {
+                          setShowMembershipModal(true);
+                        } else {
+                          toast.error('Membership proposal not found');
+                        }
+                      }}
+                      className="px-6 py-3 bg-white text-lime-600 rounded-xl font-medium hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md capitalize text-sm"
+                    >
+                      Click here to make a payment
+                    </button>
                   </div>
                 </motion.div>
               ) : (
@@ -951,7 +783,7 @@ const Dashboard = () => {
         </div>
        
       </div>
-    </AuthLayout>
+    </Admin>
   );
 };
 

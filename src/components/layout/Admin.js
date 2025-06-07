@@ -37,7 +37,7 @@ function Admin({ children }) {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('phone_number', session.user.phone);
+          .eq('email', session.user.email);
           
         if (error) throw error;
         
@@ -60,7 +60,22 @@ function Admin({ children }) {
       }
     };
 
+    // Subscribe to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/auth/signin');
+      } else if (event === 'SIGNED_IN') {
+        fetchData();
+      }
+    });
+
+    // Initial fetch
     fetchData();
+
+    // Cleanup subscription
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   if (loading) {

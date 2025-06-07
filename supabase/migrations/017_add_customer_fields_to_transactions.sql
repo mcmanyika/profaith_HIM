@@ -1,0 +1,5 @@
+ALTER TABLE transactions
+ADD COLUMN IF NOT EXISTS customer_name TEXT,
+ADD COLUMN IF NOT EXISTS customer_email TEXT,
+ADD COLUMN IF NOT EXISTS phone_number TEXT,
+ADD COLUMN IF NOT EXISTS category_name TEXT; 

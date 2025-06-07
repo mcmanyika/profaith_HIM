@@ -58,7 +58,7 @@ export async function getInvestmentsByProposal(proposalId: string) {
         .from('investments')
         .select(`
       *,
-      investor:profiles(id, full_name, avatar_url)
+      investor:profiles(id, full_name)
     `)
         .eq('proposal_id', proposalId)
         .order('created_at', { ascending: false });

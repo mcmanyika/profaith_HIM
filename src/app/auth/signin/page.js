@@ -24,7 +24,7 @@ function SignIn() {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loginMethod, setLoginMethod] = useState('email') // 'email' or 'phone'
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState(null)
   const [logoUrl, setLogoUrl] = useState(null)
   const [isLogoLoading, setIsLogoLoading] = useState(true)
@@ -105,8 +105,7 @@ function SignIn() {
               id: user.id,
               full_name: fullName,
               email: user.email,
-              last_login: new Date().toISOString(),
-              session_id: session.id
+              last_login: new Date().toISOString()
             })
           }
 
@@ -163,6 +162,14 @@ function SignIn() {
         setError('Please enter a password.')
         return
       }
+      if (!confirmPassword) {
+        setError('Please confirm your password.')
+        return
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match.')
+        return
+      }
       // Check if account is locked
       const { locked } = isAccountLocked()
       if (locked) {
@@ -180,72 +187,44 @@ function SignIn() {
             }
           }
         })
+        console.log('Sign up response:', { data, error })
         if (error) {
           console.log('Sign up error:', error)
           throw error
         }
         resetLoginAttempts()
-        setIsPhoneStep(true)
+        setEmailVerificationSent(true)
       } catch (error) {
         console.log('Sign up catch error:', error)
         setError(error.message)
       }
     } else {
-      // Login: allow either email+password or phone+password
-      if (loginMethod === 'email') {
-        if (!email) {
-          setError('Please enter your email address.')
-          return
-        }
-        if (!password) {
-          setError('Please enter your password.')
-          return
-        }
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          })
-          if (error) {
-            const attempts = incrementLoginAttempts()
-            setRemainingAttempts(Math.max(0, 3 - attempts))
-            if (attempts >= 3) {
-              await sendLockoutNotification(email)
-            }
-            throw error
+      // Login with email and password
+      if (!email) {
+        setError('Please enter your email address.')
+        return
+      }
+      if (!password) {
+        setError('Please enter your password.')
+        return
+      }
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        if (error) {
+          const attempts = incrementLoginAttempts()
+          setRemainingAttempts(Math.max(0, 3 - attempts))
+          if (attempts >= 3) {
+            await sendLockoutNotification(email)
           }
-          resetLoginAttempts()
-          router.push('/account')
-        } catch (error) {
-          setError(error.message)
+          throw error
         }
-      } else {
-        if (!phone) {
-          setError('Please enter your phone number.')
-          return
-        }
-        if (!password) {
-          setError('Please enter your password.')
-          return
-        }
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            phone,
-            password,
-          })
-          if (error) {
-            const attempts = incrementLoginAttempts()
-            setRemainingAttempts(Math.max(0, 3 - attempts))
-            if (attempts >= 3) {
-              await sendLockoutNotification(phone)
-            }
-            throw error
-          }
-          resetLoginAttempts()
-          router.push('/account')
-        } catch (error) {
-          setError(error.message)
-        }
+        resetLoginAttempts()
+        router.push('/account')
+      } catch (error) {
+        setError(error.message)
       }
     }
   }
@@ -282,6 +261,26 @@ function SignIn() {
       if (error) throw error
       setIsPhoneVerificationStep(false)
       setIsPhoneVerified(true)
+      setEmailVerificationSent(true)
+    } catch (error) {
+      setError(error.message)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: phone,
+        options: {
+          data: {
+            type: 'phone_otp_resend'
+          }
+        }
+      })
+      
+      if (error) throw error
+      
+      setError('Verification code resent successfully.')
     } catch (error) {
       setError(error.message)
     }
@@ -319,36 +318,6 @@ function SignIn() {
       if (error) throw error
       
       setError('Verification email resent successfully.')
-    } catch (error) {
-      setError(error.message)
-    }
-  }
-
-  const handleResendOtp = async () => {
-    if (countdown > 0) return
-    
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: phone,
-        options: {
-          data: {
-            type: 'phone_otp_resend'
-          }
-        }
-      })
-      
-      if (error) throw error
-      
-      setCountdown(60)
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
     } catch (error) {
       setError(error.message)
     }
@@ -413,6 +382,14 @@ function SignIn() {
           >
             Verify Phone
           </button>
+          <div className="text-center">
+            <button
+              onClick={handleResendOtp}
+              className="text-sm text-gray-600 hover:text-black transition duration-200"
+            >
+              Resend verification code
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -423,12 +400,12 @@ function SignIn() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6 text-center">
           <h2 className="text-xl font-bold text-green-700 uppercase">Phone Verified!</h2>
-          <p className="text-gray-700">You can now log in with either your email or your phone number.</p>
+          <p className="text-gray-700">Your phone number has been verified. Please check your email for the verification code to complete your registration.</p>
           <button
-            onClick={() => { setIsSignUp(false); setIsPhoneVerified(false); }}
+            onClick={() => setEmailVerificationSent(true)}
             className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200 font-medium text-sm mt-4"
           >
-            Go to Sign In
+            Continue to Email Verification
           </button>
         </div>
       </div>
@@ -467,10 +444,6 @@ function SignIn() {
             </h2>
           </div>
 
-          {!isSignUp && phone && (
-            <AccountLockoutMessage email={phone} />
-          )}
-
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
               {error}
@@ -480,32 +453,14 @@ function SignIn() {
           {emailVerificationSent ? (
             <div className="space-y-4">
               <p className="text-gray-600 text-center">
-                Please check your email for a verification code. Enter it below to complete your registration.
+                Please check your email for a confirmation link. Confirm your account before continuing.
               </p>
-              <div>
-                <input
-                  type="text"
-                  value={emailVerificationCode}
-                  onChange={(e) => setEmailVerificationCode(e.target.value)}
-                  placeholder="Enter verification code"
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
-                  maxLength={6}
-                />
-              </div>
               <button
-                onClick={handleEmailVerification}
+                onClick={() => router.push('/auth/signin')}
                 className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200 font-medium text-sm"
               >
-                Verify Email
+                Go to Login
               </button>
-              <div className="text-center">
-                <button
-                  onClick={handleResendVerificationEmail}
-                  className="text-sm text-gray-600 hover:text-black transition duration-200"
-                >
-                  Resend verification email
-                </button>
-              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -537,54 +492,35 @@ function SignIn() {
                       placeholder="Password"
                       className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
                     />
+                    {isSignUp && password && (
+                      <div className="mt-2">
+                        <PasswordStrengthIndicator password={password} />
+                      </div>
+                    )}
                   </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex justify-center space-x-4 mb-4">
-                    <button
-                      onClick={() => setLoginMethod('email')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition duration-200 ${
-                        loginMethod === 'email'
-                          ? 'bg-black text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      Email Login
-                    </button>
-                    <button
-                      onClick={() => setLoginMethod('phone')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition duration-200 ${
-                        loginMethod === 'phone'
-                          ? 'bg-black text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      Phone Login
-                    </button>
-                  </div>
-                  {loginMethod === 'email' ? (
+                  {isSignUp && (
                     <div>
                       <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Email Address"
-                        className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
-                      />
-                    </div>
-                  ) : (
-                    <div>
-                      <PhoneInput
-                        international
-                        defaultCountry="US"
-                        value={phone}
-                        onChange={setPhone}
-                        placeholder="Enter phone number"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm Password"
                         className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
                       />
                     </div>
                   )}
+                </>
+              ) : (
+                <>
+                  <div>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email Address"
+                      className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition"
+                    />
+                  </div>
                   <div>
                     <input
                       type="password"

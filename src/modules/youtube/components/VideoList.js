@@ -20,11 +20,19 @@ const VideoList = () => {
         .select('*')
         .order('uploaded_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       setVideos(data || []);
     } catch (error) {
-      console.error('Error fetching videos:', error);
-      toast.error('Failed to load videos');
+      console.error('Error fetching videos:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      toast.error(`Failed to load videos: ${error.message}`);
     } finally {
       setLoading(false);
     }

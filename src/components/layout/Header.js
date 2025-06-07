@@ -17,12 +17,18 @@ function Header() {
   useEffect(() => {
     const getUser = async () => {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser()
-        if (error) {
-          console.error('Error getting user:', error.message)
-          return
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setUser(null);
+          return;
         }
-        setUser(user)
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error('Error getting user:', error.message);
+          setUser(null);
+          return;
+        }
+        setUser(user);
       } catch (err) {
         console.error('Unexpected error getting user:', err)
       }
@@ -65,7 +71,7 @@ function Header() {
     <header className="bg-white border-b border-gray-200 px-4 py-3">
       <div className="flex items-center justify-between">
         <h1 className="text-sm md:text-lg pl-3 font-bold text-gray-800">
-          Hello <label className="font-thin">,{user?.user_metadata?.display_name}</label> 
+          Hello <label className="font-thin">,{user?.user_metadata?.full_name}</label> 
         </h1>
         
         <div className="relative flex">
@@ -76,7 +82,7 @@ function Header() {
           >
             <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
               <span className="text-sm font-medium text-gray-600">
-                {user?.user_metadata?.display_name ? user.user_metadata.display_name[0].toUpperCase() : '?'}
+                {user?.user_metadata?.full_name ? user.user_metadata.full_name[0].toUpperCase() : '?'}
               </span>
             </div>
           </button>

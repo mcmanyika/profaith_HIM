@@ -31,7 +31,6 @@ export interface ChatUser {
     id: string;
     email: string;
     full_name: string;
-    avatar_url?: string;
     online_status: 'online' | 'offline';
     last_seen?: string;
 } 
