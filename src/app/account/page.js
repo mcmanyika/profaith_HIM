@@ -507,7 +507,7 @@ const Dashboard = () => {
                       className="flex flex-col md:flex-row gap-6 w-full"
                     >
                       {userInvestedProjects.filter(project => project.category === selectedTab) ? (
-                        <div className="w-full">
+                        <div className="w-full bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 items-center justify-center">
                           <select
                             value={selectedProjectId || ''}
                             onChange={(e) => {

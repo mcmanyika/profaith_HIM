@@ -14,6 +14,9 @@ export default function ProfileView({ profiles: propProfiles }) {
   const [editingProfile, setEditingProfile] = useState(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [countries, setCountries] = useState([]);
+  const [isPhoneVerificationStep, setIsPhoneVerificationStep] = useState(false);
+  const [phoneVerificationCode, setPhoneVerificationCode] = useState('');
+  const [tempPhoneNumber, setTempPhoneNumber] = useState('');
 
   useEffect(() => {
     const fetchCountries = async () => {
@@ -68,6 +71,14 @@ export default function ProfileView({ profiles: propProfiles }) {
         throw new Error('Invalid profile data');
       }
 
+      // If phone number has changed, initiate verification
+      if (editingProfile.phone_number !== profiles.find(p => p.id === editingProfile.id)?.phone_number) {
+        setTempPhoneNumber(editingProfile.phone_number);
+        setIsPhoneVerificationStep(true);
+        setLoading(false);
+        return;
+      }
+
       console.log('Saving profile:', editingProfile);
       
       const { data, error } = await supabase
@@ -109,6 +120,72 @@ export default function ProfileView({ profiles: propProfiles }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePhoneVerification = async () => {
+    setLoading(true);
+    try {
+      // Send verification code
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        phone: tempPhoneNumber,
+        options: {
+          data: {
+            type: 'phone_verification'
+          }
+        }
+      });
+
+      if (otpError) throw otpError;
+
+      toast.success('Verification code sent to your phone');
+    } catch (err) {
+      console.error('Error sending verification code:', err);
+      toast.error(err.message || 'Failed to send verification code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    setLoading(true);
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        phone: tempPhoneNumber,
+        token: phoneVerificationCode,
+        type: 'sms'
+      });
+
+      if (verifyError) throw verifyError;
+
+      // If verification successful, update the profile
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          ...editingProfile,
+          phone_number: tempPhoneNumber
+        })
+        .eq('id', editingProfile.id)
+        .select();
+
+      if (error) throw error;
+
+      const updatedProfiles = profiles.map(p => 
+        p.id === editingProfile.id ? { ...p, ...data[0] } : p
+      );
+      setProfiles(updatedProfiles);
+      setIsPhoneVerificationStep(false);
+      setIsModalOpen(false);
+      toast.success('Phone number verified and profile updated successfully!');
+    } catch (err) {
+      console.error('Error verifying code:', err);
+      toast.error(err.message || 'Failed to verify code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    await handlePhoneVerification();
   };
 
   const handleInputChange = (e) => {
@@ -202,7 +279,7 @@ export default function ProfileView({ profiles: propProfiles }) {
         </div>
       </div>
 
-      {isModalOpen && editingProfile && (
+      {isModalOpen && editingProfile && !isPhoneVerificationStep && (
         <div 
           className={`fixed inset-0 bg-black bg-opacity-50 transition-opacity ${isModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           onClick={() => setIsModalOpen(false)}
@@ -301,6 +378,63 @@ export default function ProfileView({ profiles: propProfiles }) {
                   >
                     {loading ? 'Saving...' : 'Save Changes'}
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isPhoneVerificationStep && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity">
+          <div 
+            className="fixed inset-y-0 right-0 h-screen bg-white transform transition-transform duration-300 ease-in-out"
+            style={{ width: windowWidth > 600 ? '50%' : '100%' }}
+          >
+            <div className="h-full flex flex-col p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Verify Phone Number</h2>
+                <button
+                  onClick={() => {
+                    setIsPhoneVerificationStep(false);
+                    setPhoneVerificationCode('');
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto">
+                <div className="space-y-4">
+                  <p className="text-gray-600">
+                    Please enter the verification code sent to {tempPhoneNumber}
+                  </p>
+                  <input
+                    type="text"
+                    value={phoneVerificationCode}
+                    onChange={(e) => setPhoneVerificationCode(e.target.value)}
+                    placeholder="Enter verification code"
+                    className="block w-full px-3 py-2 text-sm rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50"
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={handleResendVerification}
+                      className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                      disabled={loading}
+                    >
+                      Resend Code
+                    </button>
+                    <button
+                      onClick={handleVerifyCode}
+                      className="px-3 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-700"
+                      disabled={loading || !phoneVerificationCode}
+                    >
+                      {loading ? 'Verifying...' : 'Verify'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
