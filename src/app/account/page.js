@@ -396,7 +396,7 @@ const Dashboard = () => {
 
   return (
     <Admin>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 px-3 sm:px-4 lg:px-6">
         
         {/* Error Display */}
         {error && (
@@ -404,20 +404,20 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-lg"
+            className="fixed top-4 right-4 z-50 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg shadow-lg"
           >
             <div className="flex items-center">
-              <svg className="h-5 w-5 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-4 w-4 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <strong className="font-semibold">Error: </strong>
-              <span className="ml-2">{error}</span>
+              <strong className="font-semibold text-sm">Error: </strong>
+              <span className="ml-2 text-sm">{error}</span>
             </div>
             <button 
-              className="absolute top-2 right-2 text-red-500 hover:text-red-700 transition-colors"
+              className="absolute top-1 right-1 text-red-500 hover:text-red-700 transition-colors"
               onClick={() => setError(null)}
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -425,10 +425,10 @@ const Dashboard = () => {
         )}
 
         <div className="">
-          <div className="bg-white rounded-2xl shadow-xl p-6 backdrop-blur-sm bg-opacity-90">
+          <div className="bg-white rounded-xl shadow-lg p-4 backdrop-blur-sm bg-opacity-90">
             {/* Category Tabs */}
-            <div className="flex flex-col space-y-4 md:space-y-0 md:items-center mb-8">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6  gap-3">
+            <div className="flex flex-col space-y-3 md:space-y-0 md:items-center mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
                 {CATEGORIES.map((tab) => (
                   <motion.button
                     key={tab.name}
@@ -436,26 +436,26 @@ const Dashboard = () => {
                     disabled={isCategoryLoading}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`relative px-4 py-3 rounded-xl font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
+                    className={`relative px-3 py-2 rounded-lg font-medium text-xs transition-all duration-300 flex items-center justify-center gap-1.5 ${
                       selectedTab === tab.name
-                        ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg"
-                        : "bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg"
+                        ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md"
+                        : "bg-white text-gray-700 hover:bg-gray-50 shadow-sm hover:shadow-md"
                     } ${isCategoryLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     style={{ overflow: 'visible' }}
                   >
                     {isCategoryLoading && selectedTab === tab.name ? (
-                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                     ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="hidden md:block h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="hidden md:block h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
                       </svg>
                     )}
                     <span>{tab.name}</span>
                     {!!categoryCounts[tab.name] && (
-                      <span className="absolute -top-2 -right-2 bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-bold rounded-full shadow-lg flex items-center justify-center" style={{ minWidth: 24, height: 24, fontSize: 13, padding: '0 7px', border: '2px solid #e0e7ef' }}>
+                      <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-bold rounded-full shadow-md flex items-center justify-center" style={{ minWidth: 20, height: 20, fontSize: 11, padding: '0 5px', border: '2px solid #e0e7ef' }}>
                         {categoryCounts[tab.name]}
                       </span>
                     )}
@@ -465,56 +465,55 @@ const Dashboard = () => {
             </div>
 
             {/* Project Overview */}
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 shadow-inner">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-3 shadow-inner">
               {/* User Summary */}
-              <div className="grid grid-cols-1 gap-6 w-full mb-8">
+              <div className="grid grid-cols-1 gap-4 w-full mb-6">
                 <div className="flex flex-col justify-center h-full">
-                  <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex flex-col md:flex-row gap-4">
                     <motion.div 
-                      className="flex w-full  bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                      className="flex w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
                     >
-                      <div className="flex flex-col gap-6 w-full">
+                      <div className="flex flex-col gap-4 w-full">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
-                            <span className="font-thin text-gray-600 text-sm uppercase">{user?.user_metadata?.full_name  || 'User'}</span>
+                            <span className="font-thin text-gray-600 text-xs uppercase">{user?.user_metadata?.full_name  || 'User'}</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span className="font-thin text-gray-600 text-sm uppercase">Total Invested: <b className="pl-7">${userStats.totalInvestment.toLocaleString()}</b></span>
+                            <span className="font-thin text-gray-600 text-xs uppercase">Total Invested: <b className="pl-4">${userStats.totalInvestment.toLocaleString()}</b></span>
                           </div>
                         </div>
                         
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2M7 7h10" />
                             </svg>
-                            <span className="font-thin text-gray-600 text-sm uppercase">My Investments: <b className="pl-4">{userStats.numberOfProjects}</b></span>
+                            <span className="font-thin text-gray-600 text-xs uppercase">My Investments: <b className="pl-3">{userStats.numberOfProjects}</b></span>
                           </div>
                         </div>
                       </div>
                     </motion.div>
 
                     <motion.div 
-                    
-                      className="flex flex-col md:flex-row gap-6 w-full"
+                      className="flex flex-col md:flex-row gap-4 w-full"
                     >
                       {userInvestedProjects.filter(project => project.category === selectedTab) ? (
-                        <div className="w-full bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 items-center justify-center">
+                        <div className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 items-center justify-center">
                           <select
                             value={selectedProjectId || ''}
                             onChange={(e) => {
                               const project = userInvestedProjects.find(p => p.id === e.target.value);
                               if (project) handleProjectSelect(project);
                             }}
-                            className="w-full p-4 rounded-xl text-sm font-medium bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                            className="w-full p-3 rounded-lg text-xs font-medium bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                           >
                             <option value="">Your Projects</option>
                             {userInvestedProjects
@@ -527,43 +526,40 @@ const Dashboard = () => {
                           </select>
                         </div>
                       ) : null}
-
                     </motion.div>
 
                     <motion.div 
-                    
-                      className="flex flex-col md:flex-row gap-6 w-full"
+                      className="flex flex-col md:flex-row gap-4 w-full"
                     >
-
                       {/* Summary Cards */}
-                      <div className="w-full bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
-                        <div className="mb-4 font-semibold text-gray-700 text-center uppercase text-sm">Summary</div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                      <div className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+                        <div className="mb-3 font-semibold text-gray-700 text-center uppercase text-xs">Summary</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
                           {/* Investors */}
-                          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-center shadow hover:shadow-lg transition-all duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 text-center shadow hover:shadow-lg transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                             <div className="text-xs text-white font-semibold tracking-wider">INVESTORS</div>
-                            <div className="text-base font-bold text-white mt-1">{proposalData?.investor_count || 0}</div>
+                            <div className="text-sm font-bold text-white mt-0.5">{proposalData?.investor_count || 0}</div>
                           </div>
                           {/* Capital Raised */}
-                          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-center shadow hover:shadow-lg transition-all duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 text-center shadow hover:shadow-lg transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <div className="text-xs text-white font-semibold tracking-wider">CAPITAL RAISED</div>
-                            <div className="text-base font-bold text-white mt-1">
+                            <div className="text-sm font-bold text-white mt-0.5">
                               ${proposalData?.amount_raised?.toLocaleString() || '0'}
                             </div>
                           </div>
                           {/* Remaining */}
-                          <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg p-4 text-center shadow hover:shadow-lg transition-all duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg p-3 text-center shadow hover:shadow-lg transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                             </svg>
                             <div className="text-xs text-white font-semibold tracking-wider">REMAINING</div>
-                            <div className="text-base font-bold text-white mt-1">
+                            <div className="text-sm font-bold text-white mt-0.5">
                               ${((proposalData?.budget || 0) - (proposalData?.amount_raised || 0)).toLocaleString()}
                             </div>
                           </div>
@@ -574,25 +570,25 @@ const Dashboard = () => {
                 </div>
               </div>
               {/* Payments Overview */}
-              <div className="grid grid-cols-1 gap-6 w-full mb-8">
+              <div className="grid grid-cols-1 gap-4 w-full mb-6">
                 <div className="flex flex-col justify-center h-full">
-                  <div className="flex flex-col lg:flex-row gap-6">
-                    <div className="flex-[3] bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 h-[400px]">
-                        <div className="w-full pl-4">
+                  <div className="flex flex-col lg:flex-row gap-4">
+                    <div className="flex-[3] bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 h-[350px]">
+                        <div className="w-full pl-3">
                           {userStats.totalInvestment > 0 && proposalData && (
-                            <div className="text-xl text-gray-500 mt-1 mb-2 capitalize"><span className="font-semibold">{proposalData.title}</span></div>
+                            <div className="text-lg text-gray-500 mt-0.5 mb-1.5 capitalize"><span className="font-semibold">{proposalData.title}</span></div>
                           )}
                         </div>
-                      <div className="mb-4 font-semibold text-right text-gray-700 flex flex-col md:flex-row md:items-center md:justify-end gap-4 w-full">
+                      <div className="mb-3 font-semibold text-right text-gray-700 flex flex-col md:flex-row md:items-center md:justify-end gap-3 w-full">
                         <div className="flex items-center gap-2">
                           <button
-                            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${!showAllMyInvestments ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${!showAllMyInvestments ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
                             onClick={() => setShowAllMyInvestments(false)}
                           >
                             This Investment Only
                           </button>
                           <button
-                            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${showAllMyInvestments ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${showAllMyInvestments ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
                             onClick={() => setShowAllMyInvestments(true)}
                           >
                             All My Investments
@@ -600,10 +596,10 @@ const Dashboard = () => {
                         </div>
                       </div>
                       {/* Payments Area Chart (Totals by Month) */}
-                      <ResponsiveContainer width="100%" height={250}>
+                      <ResponsiveContainer width="100%" height={220}>
                         <AreaChart data={userStats.totalInvestment ? chartData : [{month: 'No data', value: 0}]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                          <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                          <YAxis tick={{ fontSize: 12 }} />
+                          <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                          <YAxis tick={{ fontSize: 11 }} />
                           <Tooltip formatter={v => `$${v.toLocaleString()}`} />
                           <Area type="monotone" dataKey="value" stroke="#22c55e" fillOpacity={1} fill="#22c55e" />
                         </AreaChart>
@@ -615,19 +611,19 @@ const Dashboard = () => {
             </div>
 
             {/* Ownership & Progress */}
-            <div className="flex flex-col md:flex-row gap-6 mb-8">
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
               {proposalData && userStats.currentProjectInvestment > 0 ? (
                 <>
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
-                  className="flex-1 bg-white rounded-xl p-8 text-center flex flex-col items-center justify-center h-[400px] shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="flex-1 bg-white rounded-lg p-6 text-center flex flex-col items-center justify-center h-[350px] shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  <div className="text-xs text-gray-500 mb-3">GOAL ${proposalData?.budget?.toLocaleString() || '0'}</div>
-                  <div className="flex items-center justify-center mb-4">
+                  <div className="text-xs text-gray-500 mb-2">GOAL ${proposalData?.budget?.toLocaleString() || '0'}</div>
+                  <div className="flex items-center justify-center mb-3">
                     {[...Array(10)].map((_, i) => (
                       <div
                         key={i}
-                        className={`w-6 h-20 md:w-10 md:h-40 mx-0.5 rounded-lg transition-all duration-300 ${
+                        className={`w-5 h-16 md:w-8 md:h-32 mx-0.5 rounded-lg transition-all duration-300 ${
                           i < Math.floor((proposalData?.amount_raised || 0) / (proposalData?.budget || 1) * 10) 
                             ? "bg-gradient-to-b from-blue-600 to-blue-700" 
                             : "bg-gray-200"
@@ -635,10 +631,10 @@ const Dashboard = () => {
                       />
                     ))}
                   </div>
-                  <div className="text-sm font-semibold text-gray-700 mb-2">AMOUNT YOU INVESTED</div>
-                  <div className="text-xl font-bold text-blue-600">
+                  <div className="text-xs font-semibold text-gray-700 mb-1.5">AMOUNT YOU INVESTED</div>
+                  <div className="text-lg font-bold text-blue-600">
                     {isLoading ? (
-                      <div className="animate-pulse bg-gray-200 h-8 w-32 mx-auto rounded-lg"></div>
+                      <div className="animate-pulse bg-gray-200 h-6 w-28 mx-auto rounded-lg"></div>
                     ) : (
                       `$${userStats.currentProjectInvestment.toLocaleString()}`
                     )}
@@ -646,11 +642,11 @@ const Dashboard = () => {
                 </motion.div>
                   <motion.div 
                     whileHover={{ scale: 1.02 }}
-                    className="flex-1 rounded-xl p-8 text-center flex flex-col justify-center items-center h-[400px] shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="flex-1 rounded-lg p-6 text-center flex flex-col justify-center items-center h-[350px] shadow-lg hover:shadow-xl transition-all duration-300"
                   >
                      {/* Ownership Share Pie Chart */}
-                     <div className="w-full flex flex-col items-center mt-8">
-                        <ResponsiveContainer className={`${isMobile ? 'w-full' : 'w-full'}`} width="100%" height={isMobile ? 250 : 330}>
+                     <div className="w-full flex flex-col items-center mt-6">
+                        <ResponsiveContainer className={`${isMobile ? 'w-full' : 'w-full'}`} width="100%" height={isMobile ? 220 : 280}>
                           <PieChart>
                             <defs>
                               <linearGradient id="colorYourShare" x1="0" y1="0" x2="0" y2="1">
@@ -668,8 +664,8 @@ const Dashboard = () => {
                               nameKey="name"
                               cx="50%"
                               cy="50%"
-                              innerRadius={isMobile ? 60 : 80}
-                              outerRadius={isMobile ? 100 : 140}
+                              innerRadius={isMobile ? 50 : 70}
+                              outerRadius={isMobile ? 80 : 120}
                               paddingAngle={2}
                               label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
                               labelLine={false}
@@ -697,7 +693,7 @@ const Dashboard = () => {
                                 border: 'none',
                                 borderRadius: '8px',
                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                                padding: '12px'
+                                padding: '10px'
                               }}
                             />
                             <Legend 
@@ -706,11 +702,11 @@ const Dashboard = () => {
                               formatter={(value) => (
                                 <span style={{ 
                                   color: '#4B5563', 
-                                  fontSize: isMobile ? '12px' : '14px'
+                                  fontSize: isMobile ? '11px' : '12px'
                                 }}>{value}</span>
                               )}
                               wrapperStyle={{
-                                paddingTop: '20px'
+                                paddingTop: '15px'
                               }}
                             />
                           </PieChart>
@@ -721,11 +717,11 @@ const Dashboard = () => {
               ) : selectedTab === "MEMBERSHIP" && !hasMembershipPayment ? (
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
-                  className="flex-1 bg-gradient-to-br from-lime-400 to-lime-500 rounded-xl p-8 text-center flex items-center justify-center h-[400px] shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="flex-1 bg-gradient-to-br from-lime-400 to-lime-500 rounded-lg p-6 text-center flex items-center justify-center h-[350px] shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <div className="flex flex-col items-center justify-center text-white">
-                    <svg className="h-16 w-16 text-white mb-4" />
-                    <div className="font-semibold mb-2 capitalize text-sm">
+                    <svg className="h-12 w-12 text-white mb-3" />
+                    <div className="font-semibold mb-2 capitalize text-xs">
                       You are not a paid member yet.
                     </div>
                     <button
@@ -736,7 +732,7 @@ const Dashboard = () => {
                           toast.error('Membership proposal not found');
                         }
                       }}
-                      className="px-6 py-3 bg-white text-lime-600 rounded-xl font-medium hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md capitalize text-sm"
+                      className="px-4 py-2 bg-white text-lime-600 rounded-lg font-medium hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md capitalize text-xs"
                     >
                       Click here to make a payment
                     </button>
@@ -749,8 +745,8 @@ const Dashboard = () => {
 
             {/* Existing Proposals List Section */}
             {proposalData && (
-              <div className="mt-8">
-                <div className="flex justify-between items-center mb-6">
+              <div className="mt-6">
+                <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center space-x-2">
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -759,8 +755,8 @@ const Dashboard = () => {
                         checked={showOnlyInvested}
                         onChange={(e) => setShowOnlyInvested(e.target.checked)}
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      <span className="ml-3 text-xs font-medium text-gray-900">Show only my investments</span>
+                      <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                      <span className="ml-2 text-xs font-medium text-gray-900">Show only my investments</span>
                     </label>
                   </div>
                 </div>
@@ -772,7 +768,6 @@ const Dashboard = () => {
                 />
               </div>
             )}
-
 
             {/* Membership Modal */}
             {showMembershipModal && proposalData && (

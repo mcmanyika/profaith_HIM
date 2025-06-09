@@ -68,9 +68,9 @@ function Header() {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3">
+    <header className="bg-white border-b border-gray-200 px-3 py-2">
       <div className="flex items-center justify-between">
-        <h1 className="text-sm md:text-lg pl-3 font-bold text-gray-800">
+        <h1 className="text-xs md:text-base pl-2 font-bold text-gray-800">
           Hello <label className="font-thin">,{user?.user_metadata?.full_name}</label> 
         </h1>
         
@@ -78,30 +78,30 @@ function Header() {
           <button
             data-dropdown-button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center space-x-2 hover:bg-gray-100 rounded-full p-2"
+            className="flex items-center space-x-1.5 hover:bg-gray-100 rounded-full p-1.5"
           >
-            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-gray-600">
+            <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center">
+              <span className="text-xs font-medium text-gray-600">
                 {user?.user_metadata?.full_name ? user.user_metadata.full_name[0].toUpperCase() : '?'}
               </span>
             </div>
           </button>
-          <div className="mx-2 text-gray-300 self-center">|</div>
+          <div className="mx-1.5 text-gray-300 self-center">|</div>
           <button
             className="inline-flex px-1 text-red-600 dark:text-red-400 rounded-lg transition-colors items-center justify-center md:justify-start"
             onClick={handleSignOut}
           >
-            <ArrowRightOnRectangleIcon className="h-6 w-6 text-gray-600" />
-            <span className="pl-2 group-hover:inline text-xs text-gray-600">Logout</span>
+            <ArrowRightOnRectangleIcon className="h-5 w-5 text-gray-600" />
+            <span className="pl-1.5 group-hover:inline text-[10px] text-gray-600">Logout</span>
           </button>
 
           {isDropdownOpen && (
             <div
               data-dropdown
-              className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200"
+              className="absolute right-0 mt-1.5 w-40 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200"
             >
               <button
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-100"
               >
                 <Link href="/profile">My Profile</Link>
               </button>

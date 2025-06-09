@@ -66,32 +66,32 @@ export default function Sidebar() {
   return (
     <div className="flex flex-col z-50">
       {/* Logo */}
-      <div className="flex items-center justify-center h-10 mb-8">
-        <h1 className="text-gray-700 text-2xl font-bold">
+      <div className="flex items-center justify-center h-8 mb-6">
+        <h1 className="text-gray-700 text-xl font-bold">
         <div className="md:group-hover:hidden">KM</div>
           <div className="hidden md:group-hover:inline uppercase">Kumusha</div>
         </h1>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 space-y-0.5">
         {navigation.map((item) => (
           <button
             key={item.name}
             onClick={() => handleNavigation(item.href)}
             disabled={isNavigating}
-            className={`group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md ${
+            className={`group flex items-center w-full px-1.5 py-1.5 text-xs font-medium rounded-md ${
               pathname === item.href
                 ? 'bg-gray-900 text-white'
                 : 'text-gray-700 hover:bg-gray-700 hover:text-white'
             }`}
           >
-            <item.icon className={`h-8 w-8 ${
+            <item.icon className={`h-6 w-6 ${
              pathname === item.href 
                   ? 'text-white' 
                   : 'text-gray-400 group-hover:text-gray-300'
             }`} />
-            <span className="hidden md:group-hover:inline ml-3">
+            <span className="hidden md:group-hover:inline ml-2.5">
               {item.name}
             </span>
           </button>
