@@ -109,7 +109,11 @@ function Admin({ children }) {
         <div className="overflow-auto h-[calc(100vh-3.5rem)]">
           {typeof children === 'function' ? children(profiles) : children}
           <footer className="hidden md:block bg-white dark:bg-gray-800 text-center text-xs p-3 border-t border-gray-200 dark:border-gray-700">
-            <p>&copy; {new Date().getFullYear()} All rights reserved.</p>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-gray-500">&copy; {new Date().getFullYear()} All rights reserved.</span>
+              <span className="text-gray-400">|</span>
+              <a href="/privacy-policy" className="text-gray-500 hover:underline font-normal text-xs">Privacy Policy</a>
+            </div>
           </footer>
         </div>
       </main>
@@ -144,6 +148,11 @@ function Admin({ children }) {
             </svg>
             <span className="text-[10px] mt-0.5">Logout</span>
           </button>
+        </div>
+        <div className="flex items-center justify-center gap-2 text-xs p-2 border-t border-gray-200 dark:border-gray-700">
+          <span className="text-gray-500">&copy; {new Date().getFullYear()}</span>
+          <span className="text-gray-400">|</span>
+          <a href="/privacy-policy" className="text-gray-500 hover:underline font-normal text-xs">Privacy Policy</a>
         </div>
       </div>
     </div>
