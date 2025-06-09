@@ -459,13 +459,13 @@ export default function ProposalList({ showInvestButton = true, category = null,
                         e.stopPropagation();
                         router.push('/payments');
                       }}
-                      className="px-6 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:text-cyan-600 rounded-full hover:bg-cyan-50 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-95 flex items-center gap-2 capitalize"
+                      className="px-4 py-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition flex items-center gap-1 text-xs"
                       title="View my payments"
                     >
-                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
-                      <span className="text-sm">View my payments</span>
+                      <span className="text-sm capitalize pl-2">View my payments</span>
                     </button>
                   )}
                 </div>

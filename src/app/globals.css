@@ -231,3 +231,13 @@
       min-width: initial;
     }
   }
+  
+  /* Remove focus/active border and outline for recharts PieChart */
+  .no-focus-outline:focus,
+  .no-focus-outline:active,
+  .no-focus-outline *:focus,
+  .no-focus-outline *:active {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }

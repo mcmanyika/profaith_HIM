@@ -89,6 +89,7 @@ const Dashboard = () => {
   const [userInvestedProjects, setUserInvestedProjects] = useState([]);
   const [allTransactions, setAllTransactions] = useState([]);
   const [showAllMyInvestments, setShowAllMyInvestments] = useState(false);
+  const [showAllForProject, setShowAllForProject] = useState(false);
   const [categoryCounts, setCategoryCounts] = useState({});
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isDataLoading, setIsDataLoading] = useState(false);
@@ -388,9 +389,11 @@ const Dashboard = () => {
   };
 
   // Compute chart data based on the toggle
-  const chartData = showAllMyInvestments
-    ? getMonthlyTotals(userTransactions)
-    : getMonthlyTotals(userTransactions.filter(tx => tx.metadata?.proposal_id === selectedProjectId));
+  const chartData = showAllForProject
+    ? getMonthlyTotals(allTransactions.filter(tx => tx.metadata?.proposal_id === selectedProjectId))
+    : showAllMyInvestments
+      ? getMonthlyTotals(userTransactions)
+      : getMonthlyTotals(userTransactions.filter(tx => tx.metadata?.proposal_id === selectedProjectId));
 
   // 3. The rest of your render logic goes here
   // ... existing code ...
@@ -534,7 +537,6 @@ const Dashboard = () => {
                     >
                       {/* Summary Cards */}
                       <div className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
-                        <div className="mb-3 font-semibold text-gray-700 text-center uppercase text-xs">Summary</div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
                           {/* Investors */}
                           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 text-center shadow hover:shadow-lg transition-all duration-300">
@@ -571,7 +573,7 @@ const Dashboard = () => {
                 </div>
               </div>
               {/* Payments Overview */}
-              <div className="grid grid-cols-1 gap-4 w-full mb-6">
+              <div className="grid grid-cols-1 gap-4 w-full mb-4">
                 <div className="flex flex-col justify-center h-full">
                   <div className="flex flex-col lg:flex-row gap-4">
                     <div className="flex-[3] bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 h-[350px]">
@@ -583,16 +585,22 @@ const Dashboard = () => {
                       <div className="mb-3 font-semibold text-right text-gray-700 flex flex-col md:flex-row md:items-center md:justify-end gap-3 w-full">
                         <div className="flex items-center gap-2">
                           <button
-                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${!showAllMyInvestments ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                            onClick={() => setShowAllMyInvestments(false)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${!showAllMyInvestments && !showAllForProject ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            onClick={() => { setShowAllMyInvestments(false); setShowAllForProject(false); }}
                           >
                             This Investment Only
                           </button>
                           <button
                             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${showAllMyInvestments ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                            onClick={() => setShowAllMyInvestments(true)}
+                            onClick={() => { setShowAllMyInvestments(true); setShowAllForProject(false); }}
                           >
                             All My Investments
+                          </button>
+                          <button
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${showAllForProject ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                            onClick={() => { setShowAllForProject(true); setShowAllMyInvestments(false); }}
+                          >
+                            All Payments for Project
                           </button>
                         </div>
                       </div>
