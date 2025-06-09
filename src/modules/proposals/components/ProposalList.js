@@ -474,7 +474,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-500">Target Amount</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="font-normal text-sm text-gray-900">
                       {formatCurrency(proposal.budget || 0, proposal.currency || 'USD')}
                     </span>
                   </div>
@@ -482,7 +482,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-500">Raised</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="font-normal text-sm text-gray-900">
                         {formatCurrency(proposal.amount_raised || 0, proposal.currency || 'USD')}
                       </span>
                     </div>
