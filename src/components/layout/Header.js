@@ -69,7 +69,7 @@ function Header() {
 
   return (
     <header className="bg-white border-b border-gray-200 px-3 py-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pl-2 pr-4">
         <h1 className="text-xs md:text-base pl-2 font-bold text-gray-800">
           Hello <label className="font-thin">,{user?.user_metadata?.full_name}</label> 
         </h1>
@@ -92,7 +92,7 @@ function Header() {
             onClick={handleSignOut}
           >
             <ArrowRightOnRectangleIcon className="h-5 w-5 text-gray-600" />
-            <span className="pl-1.5 group-hover:inline text-[10px] text-gray-600">Logout</span>
+            <span className="pl-1.5 group-hover:inline text-[12px] text-gray-600">Logout</span>
           </button>
 
           {isDropdownOpen && (
