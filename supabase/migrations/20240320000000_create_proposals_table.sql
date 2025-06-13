@@ -2,12 +2,15 @@
 CREATE TABLE IF NOT EXISTS public.proposals (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
-    description TEXT,
-    file_path TEXT NOT NULL,
-    user_id UUID REFERENCES auth.users(id) NOT NULL,
+    description TEXT NOT NULL,
+    budget DECIMAL(10,2) NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    category TEXT NOT NULL,
+    deadline TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '30 days'),
+    amount_raised DECIMAL(10,2) DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE
 );
 
 -- Enable Row Level Security
