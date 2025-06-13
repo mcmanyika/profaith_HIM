@@ -65,7 +65,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMembershipPayment, setHasMembershipPayment] = useState(false);
   const [hasAnyPayments, setHasAnyPayments] = useState(false);
-  const proposalsPerPage = 5;
+  const proposalsPerPage = 10;
   const supabase = createClientComponentClient();
   const router = useRouter();
   const chatService = new ChatService();
@@ -105,7 +105,6 @@ export default function ProposalList({ showInvestButton = true, category = null,
   };
 
   const sortedProposals = [...proposals]
-    .filter(proposal => proposal.status === 'active')
     .sort((a, b) => {
       let compareA = a[sortField];
       let compareB = b[sortField];
@@ -141,8 +140,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
         // 1. Fetch proposals
         let query = supabase
           .from('proposals')
-          .select('*')
-          .eq('status', 'active');
+          .select('*');
 
         if (category) {
           query = query.eq('category', category);
@@ -370,6 +368,14 @@ export default function ProposalList({ showInvestButton = true, category = null,
     }
   };
 
+  const handleProposalUpdate = (updatedProposal) => {
+    setProposals(prevProposals => 
+      prevProposals.map(p => 
+        p.id === updatedProposal.id ? { ...p, ...updatedProposal } : p
+      )
+    );
+  };
+
   if (loading) return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
       {[...Array(4)].map((_, index) => (
@@ -429,7 +435,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
       </div>
 
       {/* Proposal Cards Grid */}
-      <div className={`grid grid-cols-1 ${currentProposals.length === 1 ? 'w-full' : 'md:grid-cols-2 lg:grid-cols-2'} gap-6 mb-12`}>
+      <div className={`grid grid-cols-1 ${currentProposals.length === 1 ? 'w-full' : 'md:grid-cols-2 lg:grid-cols-3'} gap-6 mb-12`}>
         {currentProposals.length === 0 ? (
           <EmptyState />
         ) : (
@@ -555,6 +561,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
         <ProposalDetailModal
           proposal={selectedProposal}
           onClose={() => setSelectedProposal(null)}
+          onUpdate={handleProposalUpdate}
         />
       )}
 

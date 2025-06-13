@@ -73,6 +73,36 @@ export async function POST(req) {
       );
     }
 
+    // Get proposal details for the email
+    // const { data: proposalData, error: proposalError } = await supabase
+    //   .from('proposals')
+    //   .select('title, description')
+    //   .eq('id', proposalId)
+    //   .single();
+
+    // if (proposalError) {
+    //   console.error('Error fetching proposal details:', proposalError);
+    // }
+
+    // Send confirmation email using Supabase Edge Function
+    // const { error: emailError } = await supabase.functions.invoke('send-email', {
+    //   body: {
+    //     email: customerEmail,
+    //     investorName: customerName,
+    //     proposalTitle: proposalData?.title || 'Investment Proposal',
+    //     amount: amount,
+    //     fundingPercentage: (amount / (proposalData?.target_amount || amount)) * 100,
+    //     totalRaised: amount,
+    //     targetAmount: proposalData?.target_amount || amount,
+    //     transactionId: data
+    //   }
+    // });
+
+    // if (emailError) {
+    //   console.error('Error sending confirmation email:', emailError);
+    //   // Don't return error to client since payment was successful
+    // }
+
     return NextResponse.json(
       { 
         message: 'Payment confirmed and saved successfully',

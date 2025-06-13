@@ -9,12 +9,10 @@ export const PROPOSAL_STATUS = {
 };
 
 export const PROPOSAL_CATEGORIES = [
-  'Infrastructure',
-  'Education',
-  'Healthcare',
-  'Business',
-  'Technology',
-  'Community',
-  'Membership',
-  'Other',
+  'REAL ESTATE',
+  'AGRICULTURE',
+  'TOURISM',
+  'MINING',
+  'ENERGY',
+  'MANUFACTURING',
 ]; 

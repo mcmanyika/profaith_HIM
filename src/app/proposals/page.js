@@ -1,6 +1,7 @@
 'use client';
 
 import ProposalList from "../../modules/proposals/components/ProposalList";
+import ProposalTable from "../../modules/proposals/components/ProposalTable";
 import { useState, useEffect } from "react";
 import Admin from "../../components/layout/Admin";
 import ProposalForm from "../../modules/proposals/components/ProposalForm";
@@ -42,10 +43,10 @@ function Dashboard() {
     useEffect(() => {
         // Register ChartJS components on client-side only
         import('chart.js').then(mod => {
-            const { Chart, ArcElement, Tooltip, Legend } = mod
-            Chart.register(ArcElement, Tooltip, Legend)
-        })
-    }, [])
+            const { Chart, ArcElement, Tooltip, Legend, CategoryScale, LinearScale } = mod;
+            Chart.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale);
+        });
+    }, []);
 
     useEffect(() => {
         async function fetchDashboardData() {
@@ -264,16 +265,10 @@ function Dashboard() {
 
         {/* Proposals List Section */}
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">
+          <h2 className="text-xl font-semibold mb-4 text-left">
             Current Proposals 
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="ml-2 hover:text-blue-600 transition-colors"
-            >
-              [+]
-            </button>
           </h2>
-          <ProposalList showInvestButton={true} />
+          <ProposalTable showInvestButton={true} />
         </div>
 
         {/* Sliding Modal */}

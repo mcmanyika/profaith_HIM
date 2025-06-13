@@ -7,7 +7,8 @@ import {
   ArrowLeftOnRectangleIcon,
   BriefcaseIcon,
   VideoCameraIcon,
-  UsersIcon
+  UsersIcon,
+  DocumentPlusIcon
 } from '@heroicons/react/24/outline'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useEffect, useState } from 'react'
@@ -60,7 +61,10 @@ export default function Sidebar() {
   // Add Members link only for level 5 users
   const navigation = [
     ...baseNavigation,
-    ...(userLevel === 5 ? [{ name: 'Members', href: '/members', icon: UsersIcon }] : []),
+    ...(userLevel === 5 ? [
+      { name: 'Members', href: '/members', icon: UsersIcon },
+      { name: 'Upload Proposals', href: '/proposals/upload', icon: DocumentPlusIcon }
+    ] : []),
   ]
 
   return (
