@@ -435,7 +435,7 @@ export default function ProposalList({ showInvestButton = true, category = null,
       </div>
 
       {/* Proposal Cards Grid */}
-      <div className={`grid grid-cols-1 ${currentProposals.length === 1 ? 'w-full' : 'md:grid-cols-2 lg:grid-cols-3'} gap-6 mb-12`}>
+      <div className={`grid grid-cols-1 ${currentProposals.length === 1 ? 'w-full' : 'md:grid-cols-2 lg:grid-cols-2'} gap-6 mb-12`}>
         {currentProposals.length === 0 ? (
           <EmptyState />
         ) : (
