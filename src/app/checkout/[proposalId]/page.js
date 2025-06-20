@@ -163,7 +163,7 @@ export default function CheckoutPageWrapper({ params }) {
               <div className="space-y-6">
                 <div className="w-full">
                   <h1 className="text-2xl font-bold text-gray-900 tracking-tight capitalize">{proposal.title}</h1>
-                  <div className="mt-2 text-gray-600 text-sm prose prose-sm max-w-none">
+                  <div className="mt-2 text-gray-600 text-sm prose prose-sm p-4 bg-white rounded-lg shadow-sm max-w-none">
                     {proposal.description.split('\n').map((paragraph, index) => (
                       <p key={index} className="mb-3 last:mb-0">
                         {paragraph}
