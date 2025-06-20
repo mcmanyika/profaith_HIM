@@ -51,7 +51,8 @@ export default function ProposalDetailModal({ proposal, onClose, onUpdate }) {
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      console.log('Saving proposal:', editedProposal); // Debug log
+      console.log('Original proposal:', proposal); // Debug log
+      console.log('Edited proposal before save:', editedProposal); // Debug log
 
       const { data, error } = await supabase
         .from('proposals')
@@ -75,6 +76,7 @@ export default function ProposalDetailModal({ proposal, onClose, onUpdate }) {
       toast.success('Proposal updated successfully');
       setIsEditing(false);
       if (onUpdate && data?.[0]) {
+        console.log('Calling onUpdate with:', data[0]); // Debug log
         onUpdate(data[0]);
       }
       onClose();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 import ProposalDetailModal from './ProposalDetailModal';
@@ -39,29 +39,38 @@ export default function ProposalTable({ showInvestButton = true, category = null
     }
   };
 
-  const sortedProposals = [...proposals]
-    .sort((a, b) => {
+  const sortedProposals = useMemo(() => {
+    return [...proposals].sort((a, b) => {
       let compareA = a[sortField];
       let compareB = b[sortField];
 
       if (sortField === 'deadline') {
         compareA = new Date(compareA);
         compareB = new Date(compareB);
-      } else if (sortField === 'budget') {
-        compareA = Number(compareA);
-        compareB = Number(compareB);
+      } else if (sortField === 'budget' || sortField === 'amount_raised') {
+        compareA = Number(compareA || 0);
+        compareB = Number(compareB || 0);
+      } else if (typeof compareA === 'string' && typeof compareB === 'string') {
+        compareA = compareA.toLowerCase();
+        compareB = compareB.toLowerCase();
       }
 
       if (compareA < compareB) return sortDirection === 'asc' ? -1 : 1;
       if (compareA > compareB) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
+  }, [proposals, sortField, sortDirection]);
 
   // Calculate pagination
-  const indexOfLastProposal = currentPage * proposalsPerPage;
-  const indexOfFirstProposal = indexOfLastProposal - proposalsPerPage;
-  const currentProposals = sortedProposals.slice(indexOfFirstProposal, indexOfLastProposal);
-  const totalPages = Math.ceil(sortedProposals.length / proposalsPerPage);
+  const currentProposals = useMemo(() => {
+    const indexOfLastProposal = currentPage * proposalsPerPage;
+    const indexOfFirstProposal = indexOfLastProposal - proposalsPerPage;
+    return sortedProposals.slice(indexOfFirstProposal, indexOfLastProposal);
+  }, [sortedProposals, currentPage, proposalsPerPage]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(sortedProposals.length / proposalsPerPage);
+  }, [sortedProposals, proposalsPerPage]);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -152,12 +161,29 @@ export default function ProposalTable({ showInvestButton = true, category = null
 
   if (loading) {
     return (
-      <div className="animate-pulse space-y-4">
-        <div className="h-10 bg-gray-200 rounded"></div>
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-gray-200 rounded"></div>
-          ))}
+      <div className="w-full">
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Title</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Target Amount</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Raised Amount</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Progress</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Category</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              <tr>
+                <td colSpan="5" className="px-6 py-12">
+                  <div className="flex justify-center items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                    
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     );
@@ -185,7 +211,7 @@ export default function ProposalTable({ showInvestButton = true, category = null
             <tr>
               <th 
                 scope="col" 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer w-1/4 transition-colors duration-200 hover:bg-gray-100"
                 onClick={() => handleSort('title')}
               >
                 Title {sortField === 'title' && (
@@ -194,7 +220,16 @@ export default function ProposalTable({ showInvestButton = true, category = null
               </th>
               <th 
                 scope="col" 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-left cursor-pointer w-1/6 transition-colors duration-200 hover:bg-gray-100"
+                onClick={() => handleSort('category')}
+              >
+                Category {sortField === 'category' && (
+                  <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </th>
+              <th 
+                scope="col" 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer w-1/6 transition-colors duration-200 hover:bg-gray-100"
                 onClick={() => handleSort('budget')}
               >
                 Target Amount {sortField === 'budget' && (
@@ -203,18 +238,27 @@ export default function ProposalTable({ showInvestButton = true, category = null
               </th>
               <th 
                 scope="col" 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer w-1/6 transition-colors duration-200 hover:bg-gray-100"
                 onClick={() => handleSort('amount_raised')}
               >
                 Raised Amount {sortField === 'amount_raised' && (
                   <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                 )}
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th 
+                scope="col" 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6"
+              >
                 Progress
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
+              <th 
+                scope="col" 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer w-1/6 transition-colors duration-200 hover:bg-gray-100"
+                onClick={() => handleSort('status')}
+              >
+                Status {sortField === 'status' && (
+                  <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                )}
               </th>
             </tr>
           </thead>
@@ -222,12 +266,17 @@ export default function ProposalTable({ showInvestButton = true, category = null
             {currentProposals.map((proposal) => (
               <tr 
                 key={proposal.id}
-                className="hover:bg-gray-50 cursor-pointer"
+                className="hover:bg-gray-50 cursor-pointer transition-colors duration-200"
                 onClick={() => setSelectedProposal(proposal)}
               >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {proposal.title.charAt(0).toUpperCase() + proposal.title.slice(1).toLowerCase()}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {proposal.category ? proposal.category.charAt(0).toUpperCase() + proposal.category.slice(1).toLowerCase() : 'Uncategorized'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -260,18 +309,17 @@ export default function ProposalTable({ showInvestButton = true, category = null
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  {showInvestButton && proposal.status === 'active' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push('/payments');
-                      }}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      View Payments
-                    </button>
-                  )}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      proposal.status === 'active' ? 'bg-green-100 text-green-800' :
+                      proposal.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      proposal.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {proposal.status ? proposal.status.charAt(0).toUpperCase() + proposal.status.slice(1) : 'Unknown'}
+                    </span>
+                  </div>
                 </td>
               </tr>
             ))}
