@@ -157,13 +157,14 @@ export default function CheckoutPageWrapper({ params }) {
     <div className="min-h-screen bg-gray-50">
       <div className="w-full px-4 py-8">
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             {/* Left column - Proposal details */}
-            <div className="w-full p-6 bg-gray-50 border-r border-gray-100">
-              <div className="space-y-6">
+            <div className="w-full bg-gray-50 border-r border-gray-100">
+              <div className="s mr-2 space-y-6">
                 <div className="w-full">
+                  <div className=" text-gray-600 text-sm prose prose-sm p-4 bg-white rounded-lg shadow-sm max-w-none">
                   <h1 className="text-2xl font-bold text-gray-900 tracking-tight capitalize">{proposal.title}</h1>
-                  <div className="mt-2 text-gray-600 text-sm prose prose-sm p-4 bg-white rounded-lg shadow-sm max-w-none">
+                  <p className='uppercase font-semibold'>Investment DESCRIPTION</p>
                     {proposal.description.split('\n').map((paragraph, index) => (
                       <p key={index} className="mb-3 last:mb-0">
                         {paragraph}
