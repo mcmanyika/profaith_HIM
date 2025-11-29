@@ -50,7 +50,7 @@ const EmptyState = () => (
   </div>
 );
 
-export default function ProposalList({ showInvestButton = true, category = null, showOnlyInvested = false, userId = null }) {
+export default function ProposalList({ showInvestButton = true, showDonateButton = false, category = null, showOnlyInvested = false, userId = null }) {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -459,7 +459,22 @@ export default function ProposalList({ showInvestButton = true, category = null,
                       {/* Chat button removed */}
                     </>
                   )}
-                  {showInvestButton && proposal.status === 'active' && (
+                  {showDonateButton && proposal.status === 'active' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/checkout/${proposal.id}`);
+                      }}
+                      className="px-4 py-2 bg-indigo-600 dark:bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-700 transition flex items-center gap-2 text-sm font-semibold shadow-md hover:shadow-lg"
+                      title="Give to this ministry"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Give</span>
+                    </button>
+                  )}
+                  {showInvestButton && proposal.status === 'active' && !showDonateButton && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

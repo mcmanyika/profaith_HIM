@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Profaith Church Management System
+
+A comprehensive church management platform built with Next.js and Supabase, with a companion mobile app for members.
+
+## Features
+
+- **Member Management** - Maintain detailed member profiles with contact information, ministry involvement, and giving history
+- **Giving & Donations** - Track tithes, offerings, and contributions across different categories (Building Fund, Missions, Events)
+- **Ministry Management** - Organize church ministries with leaders and member assignments
+- **Small Groups** - Manage cell groups with meeting schedules and member rosters
+- **Communication** - Create and distribute announcements to the entire church or specific groups
+- **Financial Tracking** - Generate giving statements and financial reports
+- **Secure Authentication** - Role-based access control for members, leaders, and administrators
+
+## Tech Stack
+
+- **Framework**: Next.js 15
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Payments**: Stripe (for donations/offerings)
+- **UI**: Tailwind CSS, Material-UI
+- **Charts**: Chart.js, Recharts
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies:
+
+```bash
+npm install
+```
+
+Set up your environment variables (create a `.env.local` file):
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+STRIPE_SECRET_KEY=your_stripe_secret_key
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+```
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Database Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Run the migrations in the `supabase/migrations` folder to set up your database schema:
 
-## Learn More
+```bash
+supabase db push
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+profaith/
+├── src/                   # Web application (Next.js)
+│   ├── app/              # Next.js app directory
+│   │   ├── account/      # Main dashboard
+│   │   ├── members/      # Member directory
+│   │   ├── projects/     # Church projects/campaigns
+│   │   ├── ministries/   # Ministry management
+│   │   ├── groups/       # Small groups
+│   │   └── api/         # API routes
+│   ├── components/       # Reusable UI components
+│   ├── modules/         # Feature modules
+│   └── lib/             # Utilities and helpers
+├── mobile/              # Mobile app (React Native/Expo)
+│   ├── src/
+│   │   ├── screens/     # App screens
+│   │   ├── components/  # Mobile components
+│   │   ├── navigation/  # Navigation setup
+│   │   └── config/      # Configuration
+│   └── README.md        # Mobile app documentation
+└── supabase/            # Database migrations and functions
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Key Features
 
-## Deploy on Vercel
+### Member Dashboard
+- View giving history and contribution statistics
+- Track involvement in ministries and small groups
+- Access personal giving statements
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Admin Features
+- Complete member directory with search and filters
+- Financial reporting and giving statements
+- Ministry and small group management
+- Announcement creation and distribution
+- Project/campaign management for fundraising
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Donation Processing
+- Secure Stripe integration for online giving
+- Support for different giving categories (Tithes, Building Fund, Missions, Events)
+- Automated receipt generation
+- Year-end giving statements
+
+## Mobile App
+
+A companion mobile application is available for church members, providing easy access to:
+- Make donations and payments
+- View payment history
+- Track membership status
+- Update profile information
+
+See the [mobile app documentation](mobile/README.md) for setup and usage instructions.
+
+## Contributing
+
+This is a church management system. For questions or support, contact your church administrator.
+
+## License
+
+Private - For church use only

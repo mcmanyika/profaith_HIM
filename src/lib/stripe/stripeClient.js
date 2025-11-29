@@ -32,8 +32,8 @@ export const createPaymentIntent = async (amount, proposalId) => {
   }
 };
 
-// Process a successful payment
-export const handlePaymentSuccess = async (paymentIntent, proposalId) => {
+// Process a successful donation
+export const handleDonationSuccess = async (paymentIntent, projectId, categoryName = 'donation') => {
   try {
     // Get current user data
     const supabase = createClientComponentClient();
@@ -53,24 +53,27 @@ export const handlePaymentSuccess = async (paymentIntent, proposalId) => {
       },
       body: JSON.stringify({
         paymentIntentId: paymentIntent.id,
-        proposalId,
-        investorId: user.id,
+        projectId,
+        memberId: user.id,
         userId: user.id,
         amount: paymentIntent.amount / 100, // Convert from cents to dollars
         customerName: profile?.full_name || 'Anonymous',
         customerEmail: profile?.email,
         phoneNumber: profile?.phone_number,
-        categoryName: 'investment' // Default category for investments
+        categoryName: categoryName // Category for church giving
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to confirm payment');
+      throw new Error('Failed to confirm donation');
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Error confirming payment:', error);
+    console.error('Error confirming donation:', error);
     throw error;
   }
-}; 
+};
+
+// Keep backward compatibility
+export const handlePaymentSuccess = handleDonationSuccess; 

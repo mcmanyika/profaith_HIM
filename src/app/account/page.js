@@ -5,44 +5,15 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { withAuth } from '../../utils/withAuth'
 import ProposalList from "../../modules/proposals/components/ProposalList";
 import ProposalDetailModal from '../../modules/proposals/components/ProposalDetailModal';
-import YouTubeVideo from "./utils/youtube";
-import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import MembershipList from "../../modules/proposals/components/MembershipList";
-import { ToastContainer, toast } from 'react-toastify';
+import { motion } from 'framer-motion';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import AuthLayout from '../../components/layout/AuthLayout'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import ProposalTable from "../../modules/proposals/components/ProposalTable";
+import GivingCard from '../../components/church/GivingCard';
+import CommunityImpact from '../../components/church/CommunityImpact';
+import GivingModal from '../../components/church/GivingModal';
+import { useRouter } from 'next/navigation';
 
-const CATEGORIES = [
-  { name: "REAL ESTATE", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
-  { name: "AGRICULTURE", icon: "M12 19l9 2-9-18-9 18 9-2zm0 0v-8" },
-  { name: "TOURISM", icon: "M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
-  { name: "MINING", icon: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" },
-  { name: "ENERGY", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-  { name: "MANUFACTURING", icon: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" },
-  { name: "MEMBERSHIP", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
-];
-
-// Example MembershipModal component
-const MembershipModal = ({ onClose }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-    <div className="bg-white rounded-lg p-8 shadow-lg w-full max-w-md">
-      <h2 className="text-xl font-bold mb-4">Membership</h2>
-      <p>Membership details and actions go here.</p>
-      <button
-        className="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        onClick={onClose}
-      >
-        Close
-      </button>
-    </div>
-  </div>
-);
-
-// Show totals by month: sum amount for all transactions in each month (not cumulative)
 function getMonthlyTotals(transactions) {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const monthlyTotals = Array(12).fill(0);
@@ -57,94 +28,213 @@ function getMonthlyTotals(transactions) {
 }
 
 const Dashboard = () => {
-  // 1. All useState, useMemo, useCallback, useEffect, etc. go here, at the top of the component
-
   // State declarations
-  const [selectedTab, setSelectedTab] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("selectedTab") || "REAL ESTATE";
-    }
-    return "REAL ESTATE";
-  });
+  const [selectedTab, setSelectedTab] = useState(null);
   const [user, setUser] = useState(null);
   const [proposalData, setProposalData] = useState(null);
   const [showOnlyInvested, setShowOnlyInvested] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [userStats, setUserStats] = useState({
-    totalInvestment: 0,
+    totalContributions: 0,
     numberOfProjects: 0,
-    currentProjectInvestment: 0
+    currentProjectContribution: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [documents, setDocuments] = useState([]);
-  const [selectedDocument, setSelectedDocument] = useState(null);
   const [hasMembershipPayment, setHasMembershipPayment] = useState(false);
   const [showMembershipModal, setShowMembershipModal] = useState(false);
   const supabase = createClientComponentClient();
+  const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
+  const [showGivingModal, setShowGivingModal] = useState(false);
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const [userTransactions, setUserTransactions] = useState([]);
   const [userInvestedProjects, setUserInvestedProjects] = useState([]);
   const [allTransactions, setAllTransactions] = useState([]);
+  const [allProjects, setAllProjects] = useState([]);
   const [showAllMyInvestments, setShowAllMyInvestments] = useState(false);
-  const [showAllForProject, setShowAllForProject] = useState(false);
   const [categoryCounts, setCategoryCounts] = useState({});
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [cachedData, setCachedData] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
 
-  // Memoized values and callbacks
+  // Memoized values
   const ownershipPieData = useMemo(() => {
-    const userShare = userStats.currentProjectInvestment || 0;
+    const userShare = userStats.currentProjectContribution || 0;
     const total = proposalData?.amount_raised || 0;
     const rest = Math.max(total - userShare, 0);
     return [
-      { name: 'Your Share', value: userShare },
+      { name: 'Your Giving', value: userShare },
       { name: 'Others', value: rest },
     ];
-  }, [userStats.currentProjectInvestment, proposalData?.amount_raised]);
+  }, [userStats.currentProjectContribution, proposalData?.amount_raised]);
 
-  const pieColors = ['#22c55e', '#e5e7eb'];
+  const pieColors = ['#818cf8', '#4b5563']; // Indigo for user's giving, dark gray for others
 
   const updateUserStats = useCallback(async (transactions, selectedId) => {
-    if (!user || !selectedId) {
+    if (!user) {
       setUserStats({
-        totalInvestment: 0,
+        totalContributions: 0,
         numberOfProjects: 0,
-        currentProjectInvestment: 0
+        currentProjectContribution: 0
       });
       return;
     }
     const stats = {
-      totalInvestment: 0,
+      totalContributions: 0,
       numberOfProjects: 0,
-      currentProjectInvestment: 0
+      currentProjectContribution: 0
     };
     if (transactions) {
-      stats.totalInvestment = transactions
-        .filter(tx => tx.metadata?.investor_id === user.id)
-        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-      const uniqueProjects = new Set(
-        transactions
-          .filter(tx => tx.metadata?.investor_id === user.id)
-          .map(tx => tx.metadata?.proposal_id)
+      // Filter by user_id column (for direct donations) OR metadata.investor_id (for legacy donations)
+      const userTransactions = transactions.filter(
+        tx => tx.user_id === user.id || tx.metadata?.investor_id === user.id
       );
-      stats.numberOfProjects = uniqueProjects.size;
-      stats.currentProjectInvestment = transactions
-        .filter(tx =>
-          tx.metadata?.proposal_id === selectedId &&
-          tx.metadata?.investor_id === user.id
-        )
+      
+      stats.totalContributions = userTransactions
         .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+      
+      // Count unique projects the user has contributed to
+      const uniqueProjects = new Set(
+        userTransactions
+          .map(tx => tx.metadata?.proposal_id || tx.metadata?.project_id)
+          .filter(Boolean)
+      );
+      
+      // Count unique categories the user has contributed to (for direct donations)
+      const uniqueCategories = new Set(
+        userTransactions
+          .filter(tx => {
+            const projectId = tx.metadata?.proposal_id || tx.metadata?.project_id;
+            return !projectId && tx.category_name; // Only direct donations with category
+          })
+          .map(tx => tx.category_name)
+          .filter(Boolean)
+      );
+      
+      // Total ministries supported = unique projects + unique categories
+      stats.numberOfProjects = uniqueProjects.size + uniqueCategories.size;
+      
+      if (selectedId) {
+        stats.currentProjectContribution = userTransactions
+          .filter(tx =>
+            (tx.metadata?.proposal_id === selectedId || tx.metadata?.project_id === selectedId)
+          )
+          .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+      }
     }
     setUserStats(stats);
   }, [user]);
 
-  // All useEffect hooks at the top
+  // Helper functions using categories state
+  const getDbName = useCallback((displayName) => {
+    if (!categories || categories.length === 0) return displayName;
+    const cat = categories.find(c => c.display_name === displayName);
+    return cat ? cat.db_name : displayName;
+  }, [categories]);
+
+  const getDisplayName = useCallback((dbName) => {
+    if (!categories || categories.length === 0) return dbName;
+    const cat = categories.find(c => c.db_name === dbName);
+    return cat ? cat.display_name : dbName;
+  }, [categories]);
+
+  // Default categories fallback
+  const defaultCategories = [
+    { display_name: "GIVING & STEWARDSHIP", db_name: "TITHES & OFFERINGS", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z", display_order: 1, is_active: true },
+    { display_name: "BUILDING FUND", db_name: "BUILDING FUND", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", display_order: 2, is_active: true },
+    { display_name: "MISSIONS & OUTREACH", db_name: "MISSIONS", icon: "M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z", display_order: 3, is_active: true },
+    { display_name: "CHURCH EVENTS", db_name: "EVENTS", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", display_order: 4, is_active: true },
+    { display_name: "MEMBERSHIP", db_name: "MEMBERSHIP", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z", display_order: 5, is_active: true },
+  ];
+
+  // Fetch categories from Supabase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true });
+        
+        if (error) {
+          console.error('Supabase error fetching categories:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          // Use fallback categories if table doesn't exist or there's an error
+          console.warn('Using default categories as fallback');
+          setCategories(defaultCategories);
+          
+          // Initialize selectedTab with fallback
+          if (!selectedTab && defaultCategories.length > 0) {
+            if (typeof window !== "undefined") {
+              const saved = localStorage.getItem("selectedTab");
+              const savedCategory = defaultCategories.find(c => c.db_name === saved);
+              const displayName = savedCategory ? savedCategory.display_name : defaultCategories[0].display_name;
+              setSelectedTab(displayName);
+            } else {
+              setSelectedTab(defaultCategories[0].display_name);
+            }
+          }
+          return;
+        }
+        
+        const fetchedCategories = data || [];
+        
+        // If no categories found, use fallback
+        if (fetchedCategories.length === 0) {
+          console.warn('No categories found in database, using default categories');
+          setCategories(defaultCategories);
+        } else {
+          setCategories(fetchedCategories);
+        }
+        
+        // Initialize selectedTab if not set
+        const categoriesToUse = fetchedCategories.length > 0 ? fetchedCategories : defaultCategories;
+        if (!selectedTab && categoriesToUse.length > 0) {
+          if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("selectedTab");
+            const savedCategory = categoriesToUse.find(c => c.db_name === saved);
+            const displayName = savedCategory ? savedCategory.display_name : categoriesToUse[0].display_name;
+            setSelectedTab(displayName);
+          } else {
+            setSelectedTab(categoriesToUse[0].display_name);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', {
+          error,
+          message: error?.message,
+          stack: error?.stack
+        });
+        // Use fallback categories on any error
+        console.warn('Using default categories as fallback due to error');
+        setCategories(defaultCategories);
+        
+        // Initialize selectedTab with fallback
+        if (!selectedTab && defaultCategories.length > 0) {
+          if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("selectedTab");
+            const savedCategory = defaultCategories.find(c => c.db_name === saved);
+            const displayName = savedCategory ? savedCategory.display_name : defaultCategories[0].display_name;
+            setSelectedTab(displayName);
+          } else {
+            setSelectedTab(defaultCategories[0].display_name);
+          }
+        }
+      }
+    };
+    fetchCategories();
+  }, [supabase]);
+
+  // Auth effect
   useEffect(() => {
     let subscription;
     const getSession = async () => {
@@ -166,10 +256,10 @@ const Dashboard = () => {
   }, [supabase]);
 
   useEffect(() => {
-    if (selectedTab) {
-      localStorage.setItem("selectedTab", selectedTab);
+    if (selectedTab && categories.length > 0) {
+      localStorage.setItem("selectedTab", getDbName(selectedTab));
     }
-  }, [selectedTab]);
+  }, [selectedTab, categories, getDbName]);
 
   useEffect(() => {
     setHasMounted(true);
@@ -190,6 +280,7 @@ const Dashboard = () => {
       if (cachedData && Date.now() - cachedData.timestamp < 30000) {
         setUserTransactions(cachedData.userTransactions);
         setAllTransactions(cachedData.allTransactions);
+        setAllProjects(cachedData.allProjects || []);
         setUserInvestedProjects(cachedData.userProjects);
         setCategoryCounts(cachedData.categoryCounts);
         setHasMembershipPayment(cachedData.hasMembership);
@@ -199,40 +290,42 @@ const Dashboard = () => {
       }
       try {
         setIsDataLoading(true);
-        const [transactionsResponse, proposalsResponse] = await Promise.all([
+        const [transactionsResponse, projectsResponse] = await Promise.all([
           supabase
             .from('transactions')
-            .select('amount, metadata, created_at')
+            .select('id, amount, metadata, created_at, user_id, category_name, type')
             .eq('status', 'completed'),
           supabase
-            .from('proposals')
-            .select('id, title, category, budget, amount_raised, status')
+            .from('projects')
+            .select('id, title, category, budget, funds_raised, status')
             .eq('status', 'active')
         ]);
         if (transactionsResponse.error) throw transactionsResponse.error;
-        if (proposalsResponse.error) throw proposalsResponse.error;
+        if (projectsResponse.error) throw projectsResponse.error;
         const allTransactions = transactionsResponse.data || [];
-        const allProposals = proposalsResponse.data || [];
+        const allProjects = projectsResponse.data || [];
+        // Filter by user_id column (for direct donations) OR metadata.investor_id (for legacy donations)
         const userTxs = allTransactions.filter(
-          tx => tx.metadata?.investor_id === user.id
+          tx => tx.user_id === user.id || tx.metadata?.investor_id === user.id
         );
-        const uniqueProposalIds = [
+        const uniqueProjectIds = [
           ...new Set(userTxs.map(tx => tx.metadata?.proposal_id).filter(Boolean))
         ];
-        const userProjects = allProposals.filter(p => 
-          uniqueProposalIds.includes(p.id)
+        const userProjects = allProjects.filter(p => 
+          uniqueProjectIds.includes(p.id)
         );
         const counts = {};
-        allProposals.forEach(p => {
+        allProjects.forEach(p => {
           counts[p.category] = (counts[p.category] || 0) + 1;
         });
-        const membershipProposals = allProposals.filter(p => p.category === 'MEMBERSHIP');
+        const membershipProjects = allProjects.filter(p => p.category === 'MEMBERSHIP');
         const hasMembership = userTxs.some(
-          tx => membershipProposals.some(p => p.id === tx.metadata?.proposal_id)
+          tx => membershipProjects.some(p => p.id === tx.metadata?.proposal_id)
         );
         const processedData = {
           userTransactions: userTxs,
           allTransactions,
+          allProjects,
           userProjects,
           categoryCounts: counts,
           hasMembership,
@@ -241,6 +334,7 @@ const Dashboard = () => {
         setCachedData(processedData);
         setUserTransactions(userTxs);
         setAllTransactions(allTransactions);
+        setAllProjects(allProjects);
         setUserInvestedProjects(userProjects);
         setCategoryCounts(counts);
         setHasMembershipPayment(hasMembership);
@@ -256,65 +350,92 @@ const Dashboard = () => {
     fetchAllData();
   }, [authLoading, user, supabase, selectedProjectId, updateUserStats, cachedData]);
 
+  // Listen for refresh events from payment modals
   useEffect(() => {
-    const projectsInCategory = userInvestedProjects.filter(proj => proj && proj.category === selectedTab);
+    const handleRefresh = () => {
+      // Clear cache to force fresh fetch on next render
+      setCachedData(null);
+      // Small delay to ensure the transaction is committed to database
+      setTimeout(() => {
+        // Force re-fetch by clearing cache timestamp
+        setCachedData(prev => prev ? { ...prev, timestamp: 0 } : null);
+      }, 1000);
+    };
+    window.addEventListener('refreshDashboard', handleRefresh);
+    return () => {
+      window.removeEventListener('refreshDashboard', handleRefresh);
+    };
+  }, []);
+
+  useEffect(() => {
+    const dbTabName = getDbName(selectedTab);
+    const projectsInCategory = userInvestedProjects.filter(proj => proj && proj.category === dbTabName);
     if (projectsInCategory.length > 0 && !selectedProjectId) {
       setSelectedProjectId(projectsInCategory[0].id);
     }
   }, [userInvestedProjects, selectedTab, selectedProjectId]);
+
+  const handleGive = () => {
+    if (!user) {
+      toast.error('Please sign in to make a donation');
+      return;
+    }
+    setShowGivingModal(true);
+  };
 
   useEffect(() => {
     if (authLoading || !user) return;
     const fetchProposalData = async () => {
       try {
         setIsLoading(true);
-        if (selectedTab === "MEMBERSHIP") {
-          const { data: membershipProposals, error: proposalError } = await supabase
-            .from('proposals')
-            .select('id, budget, title, amount_raised, category')
+        const dbTabName = getDbName(selectedTab);
+        if (dbTabName === "MEMBERSHIP") {
+          const { data: membershipProjects, error: projectError } = await supabase
+            .from('projects')
+            .select('id, budget, title, funds_raised, category')
             .eq('category', 'MEMBERSHIP');
-          if (proposalError) throw proposalError;
-          if (!membershipProposals || membershipProposals.length === 0) {
+          if (projectError) throw projectError;
+          if (!membershipProjects || membershipProjects.length === 0) {
             setProposalData(null);
             return;
           }
-          const proposalIds = membershipProposals.map(p => p.id);
+          const projectIds = membershipProjects.map(p => p.id);
           const { data: transactions, error: transactionsError } = await supabase
             .from('transactions')
             .select('amount, metadata')
             .eq('status', 'completed');
           if (transactionsError) throw transactionsError;
           const filtered = transactions.filter(
-            tx => proposalIds.includes(tx.metadata?.proposal_id)
+            tx => projectIds.includes(tx.metadata?.proposal_id)
           );
-          const uniqueInvestors = new Set(filtered.map(tx => tx.metadata?.investor_id)).size;
+          const uniqueDonors = new Set(filtered.map(tx => tx.metadata?.investor_id)).size;
           const totalRaised = filtered.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-          const totalBudget = membershipProposals.reduce((sum, p) => sum + (p.budget || 0), 0);
+          const totalBudget = membershipProjects.reduce((sum, p) => sum + (p.budget || 0), 0);
           setProposalData({
-            ...membershipProposals[0],
+            ...membershipProjects[0],
             budget: totalBudget,
             amount_raised: totalRaised,
-            investor_count: uniqueInvestors
+            investor_count: uniqueDonors
           });
           return;
         }
         let query = supabase
-          .from('proposals')
-          .select('id, title, budget, amount_raised, category, investor_count')
+          .from('projects')
+          .select('id, title, budget, funds_raised, category, donor_count')
           .eq('status', 'active');
         if (selectedProjectId) {
           query = query.eq('id', selectedProjectId);
         } else {
           query = query
-            .eq('category', selectedTab)
+            .eq('category', dbTabName)
             .order('created_at', { ascending: false })
             .limit(1);
         }
-        const { data: proposal, error: proposalError } = await query;
-        if (proposalError) {
-          throw proposalError;
+        const { data: project, error: projectError } = await query;
+        if (projectError) {
+          throw projectError;
         }
-        if (!proposal || proposal.length === 0) {
+        if (!project || project.length === 0) {
           setProposalData(null);
           return;
         }
@@ -326,14 +447,14 @@ const Dashboard = () => {
           throw transactionsError;
         }
         const filtered = transactions.filter(
-          tx => tx.metadata?.proposal_id === proposal[0].id
+          tx => tx.metadata?.proposal_id === project[0].id
         );
-        const capitalRaised = filtered.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-        const uniqueInvestors = new Set(filtered.map(tx => tx.metadata?.investor_id)).size;
+        const fundsRaised = filtered.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+        const uniqueDonors = new Set(filtered.map(tx => tx.metadata?.investor_id)).size;
         setProposalData({
-          ...proposal[0],
-          amount_raised: capitalRaised,
-          investor_count: uniqueInvestors
+          ...project[0],
+          amount_raised: fundsRaised,
+          investor_count: uniqueDonors
         });
       } catch (error) {
         setError(error.message);
@@ -346,70 +467,113 @@ const Dashboard = () => {
     fetchProposalData();
   }, [authLoading, supabase, selectedTab, user, selectedProjectId]);
 
-  useEffect(() => {
-    if (authLoading || !user) return;
-    const fetchDocuments = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('documents')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        setDocuments(data || []);
-      } catch (error) {
-        setError(error.message);
-        setDocuments([]);
-        toast.error('Failed to fetch documents: ' + error.message);
-      }
-    };
-    fetchDocuments();
-  }, [authLoading, user, supabase]);
-
-  const ownershipShare = useMemo(() => {
-    try {
-      if (!proposalData?.amount_raised || !userStats.currentProjectInvestment) return 0;
-      const share = (userStats.currentProjectInvestment / proposalData.amount_raised) * 100;
-      return isNaN(share) ? 0 : share.toFixed(1);
-    } catch (error) {
-      return 0;
-    }
-  }, [proposalData?.amount_raised, userStats.currentProjectInvestment]);
-
   const handleTabSelect = (tab) => {
     setIsCategoryLoading(true);
     setSelectedTab(tab);
     setSelectedProjectId(null);
     setProposalData(null);
+    // Reset filter buttons when category changes
+    setShowAllMyInvestments(false);
     setIsCategoryLoading(false);
   };
 
   const handleProjectSelect = (project) => {
     setSelectedProjectId(project.id);
-    setSelectedTab(project.category);
+    setSelectedTab(getDisplayName(project.category) || selectedTab);
   };
 
-  // Compute chart data based on the toggle
-  const chartData = showAllForProject
-    ? getMonthlyTotals(allTransactions.filter(tx => tx.metadata?.proposal_id === selectedProjectId))
-    : showAllMyInvestments
-      ? getMonthlyTotals(userTransactions)
-      : getMonthlyTotals(userTransactions.filter(tx => tx.metadata?.proposal_id === selectedProjectId));
+  // Get the current category name for filtering direct donations
+  const currentCategoryName = selectedTab ? getDbName(selectedTab) : null;
+  
+  // Get project IDs in the current category for filtering
+  const categoryProjectIds = useMemo(() => {
+    if (!currentCategoryName || !categories.length) return [];
+    
+    // Get all possible category names (db_name and display_name) for the current category
+    const currentCategory = categories.find(c => c.db_name === currentCategoryName || c.display_name === currentCategoryName);
+    if (!currentCategory) return [];
+    
+    const targetDbName = currentCategory.db_name.trim().toUpperCase();
+    const targetDisplayName = currentCategory.display_name.trim().toUpperCase();
+    
+    const projectIds = allProjects
+      .filter(project => {
+        if (!project.category) return false;
+        // Case-insensitive comparison - match against both db_name and display_name
+        const projectCategory = project.category.trim().toUpperCase();
+        return projectCategory === targetDbName || projectCategory === targetDisplayName;
+      })
+      .map(project => project.id);
+    return projectIds;
+  }, [allProjects, currentCategoryName, categories]);
+  
+  const chartData = useMemo(() => {
+    // Safety check
+    if (!currentCategoryName) {
+      return getMonthlyTotals([]);
+    }
 
-  // 3. The rest of your render logic goes here
-  // ... existing code ...
+    if (showAllMyInvestments) {
+      // Show all user transactions across all categories
+      return getMonthlyTotals(userTransactions);
+    } else {
+      // Default: Show user transactions for selected project OR all projects in category OR direct donations to category
+      return getMonthlyTotals(userTransactions.filter(tx => {
+        const projectId = tx.metadata?.project_id || 
+                         tx.metadata?.projectId || 
+                         tx.metadata?.proposal_id || 
+                         tx.metadata?.proposalId;
+        
+        // Filter by project ID (for selected project donations)
+        const isSelectedProject = selectedProjectId && 
+                                  (projectId === selectedProjectId || 
+                                   String(projectId) === String(selectedProjectId));
+        
+        // Filter by projects in the selected category (if no specific project selected)
+        const isProjectInCategory = !selectedProjectId && 
+                                    projectId && 
+                                    categoryProjectIds.includes(projectId);
+        
+        // Filter by direct donations to the selected category
+        const isDirectDonation = tx.category_name && 
+                                 tx.category_name.trim().toUpperCase() === currentCategoryName.trim().toUpperCase() && 
+                                 !projectId;
+        
+        return isSelectedProject || isProjectInCategory || isDirectDonation;
+      }));
+    }
+  }, [showAllMyInvestments, userTransactions, categoryProjectIds, currentCategoryName, selectedProjectId]);
+
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Friend';
+  const dbTabName = getDbName(selectedTab);
+
+  // Don't render until categories are loaded
+  if (categories.length === 0) {
+    return (
+      <Admin>
+        <div className="min-h-screen bg-gray-50 dark:bg-black py-6 px-3 sm:px-4 lg:px-6 flex items-center justify-center">
+          <div className="text-center">
+            <svg className="animate-spin h-8 w-8 text-indigo-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="text-gray-600 dark:text-gray-400">Loading categories...</p>
+          </div>
+        </div>
+      </Admin>
+    );
+  }
 
   return (
     <Admin>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 px-3 sm:px-4 lg:px-6">
-        
+      <div className="min-h-screen bg-gray-50 dark:bg-black py-6 px-3 sm:px-4 lg:px-6">
         {/* Error Display */}
         {error && (
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg shadow-lg"
+            className="fixed top-4 right-4 z-50 bg-red-50 dark:bg-red-900 border-l-4 border-red-500 text-red-700 dark:text-red-100 px-4 py-3 rounded-lg shadow-lg"
           >
             <div className="flex items-center">
               <svg className="h-4 w-4 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -419,7 +583,7 @@ const Dashboard = () => {
               <span className="ml-2 text-sm">{error}</span>
             </div>
             <button 
-              className="absolute top-1 right-1 text-red-500 hover:text-red-700 transition-colors"
+              className="absolute top-1 right-1 text-red-300 hover:text-red-100 transition-colors"
               onClick={() => setError(null)}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -429,39 +593,38 @@ const Dashboard = () => {
           </motion.div>
         )}
 
-        <div className="">
-          <div className="bg-white rounded-xl shadow-lg p-4 backdrop-blur-sm bg-opacity-90">
-            {/* Category Tabs */}
-            <div className="flex flex-col space-y-3 md:space-y-0 md:items-center mb-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2">
-                {CATEGORIES.map((tab) => (
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 md:p-6 border border-gray-200 dark:border-gray-800">
+            {/* Category Tabs - Church Themed */}
+            <div className="flex flex-col space-y-3 md:space-y-0 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {categories.map((category) => (
                   <motion.button
-                    key={tab.name}
-                    onClick={() => handleTabSelect(tab.name)}
+                    key={category.display_name}
+                    onClick={() => handleTabSelect(category.display_name)}
                     disabled={isCategoryLoading}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`relative px-3 py-2 rounded-lg font-medium text-xs transition-all duration-300 flex items-center justify-center gap-1.5 ${
-                      selectedTab === tab.name
-                        ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md"
-                        : "bg-white text-gray-700 hover:bg-gray-50 shadow-sm hover:shadow-md"
+                    className={`relative px-4 py-3 rounded-lg font-semibold text-xs md:text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
+                      selectedTab === category.display_name
+                        ? "bg-indigo-600 text-white shadow-md"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm border border-gray-300 dark:border-gray-700"
                     } ${isCategoryLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    style={{ overflow: 'visible' }}
                   >
-                    {isCategoryLoading && selectedTab === tab.name ? (
-                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    {isCategoryLoading && selectedTab === category.display_name ? (
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                     ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="hidden md:block h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={category.icon} />
                       </svg>
                     )}
-                    <span>{tab.name}</span>
-                    {!!categoryCounts[tab.name] && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-bold rounded-full shadow-md flex items-center justify-center" style={{ minWidth: 20, height: 20, fontSize: 11, padding: '0 5px', border: '2px solid #e0e7ef' }}>
-                        {categoryCounts[tab.name]}
+                    <span className="text-center leading-tight">{category.display_name}</span>
+                    {!!categoryCounts[category.db_name] && (
+                      <span className="absolute -top-2 -right-2 bg-indigo-600 text-white font-bold rounded-full shadow-md flex items-center justify-center min-w-[24px] h-6 text-xs px-2 border-2 border-white dark:border-gray-900">
+                        {categoryCounts[category.db_name]}
                       </span>
                     )}
                   </motion.button>
@@ -469,310 +632,246 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Project Overview */}
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-3 shadow-inner">
-              {/* User Summary */}
-              <div className="grid grid-cols-1 gap-4 w-full mb-6">
-                <div className="flex flex-col justify-center h-full">
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <motion.div 
-                      className="flex w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
-                    >
-                      <div className="flex flex-col gap-4 w-full">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <span className="font-thin text-gray-600 text-xs uppercase">{user?.user_metadata?.full_name  || 'User'}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span className="font-thin text-gray-600 text-xs uppercase">Total Invested: <b className="pl-4">${userStats.totalInvestment.toLocaleString()}</b></span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2M7 7h10" />
-                            </svg>
-                            <span className="font-thin text-gray-600 text-xs uppercase">My Investments: <b className="pl-3">{userStats.numberOfProjects}</b></span>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    <motion.div 
-                      className="flex flex-col md:flex-row gap-4 w-full"
-                    >
-                      {userInvestedProjects.filter(project => project.category === selectedTab) ? (
-                        <div className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 items-center justify-center">
-                          <select
-                            value={selectedProjectId || ''}
-                            onChange={(e) => {
-                              const project = userInvestedProjects.find(p => p.id === e.target.value);
-                              if (project) handleProjectSelect(project);
-                            }}
-                            className="w-full p-3 rounded-lg text-xs font-medium bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                          >
-                            <option value="">Your Projects</option>
-                            {userInvestedProjects
-                              .filter(project => project.category === selectedTab)
-                              .map((project) => (
-                                <option key={project.id} value={project.id}>
-                                  {project.title}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                      ) : null}
-                    </motion.div>
-
-                    <motion.div 
-                      className="flex flex-col md:flex-row gap-4 w-full"
-                    >
-                      {/* Summary Cards */}
-                      <div className="w-full bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
-                          {/* Investors */}
-                          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 text-center shadow hover:shadow-lg transition-all duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            <div className="text-xs text-white font-semibold tracking-wider">INVESTORS</div>
-                            <div className="text-sm font-bold text-white mt-0.5">{proposalData?.investor_count || 0}</div>
-                          </div>
-                          {/* Capital Raised */}
-                          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 text-center shadow hover:shadow-lg transition-all duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <div className="text-xs text-white font-semibold tracking-wider">CAPITAL RAISED</div>
-                            <div className="text-sm font-bold text-white mt-0.5">
-                              ${proposalData?.amount_raised?.toLocaleString() || '0'}
-                            </div>
-                          </div>
-                          {/* Remaining */}
-                          <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg p-3 text-center shadow hover:shadow-lg transition-all duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1 mx-auto text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                            <div className="text-xs text-white font-semibold tracking-wider">REMAINING</div>
-                            <div className="text-sm font-bold text-white mt-0.5">
-                              ${((proposalData?.budget || 0) - (proposalData?.amount_raised || 0)).toLocaleString()}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </div>
-                </div>
-              </div>
-              {/* Payments Overview */}
-              <div className="grid grid-cols-1 gap-4 w-full mb-4">
-                <div className="flex flex-col justify-center h-full">
-                  <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="flex-[3] bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 h-[350px]">
-                        <div className="w-full pl-3">
-                          {userStats.totalInvestment > 0 && proposalData && (
-                            <div className="text-lg text-gray-500 mt-0.5 mb-1.5 capitalize"><span className="font-semibold">{proposalData.title}</span></div>
-                          )}
-                        </div>
-                      <div className="mb-3 font-semibold text-right text-gray-700 flex flex-col md:flex-row md:items-center md:justify-end gap-3 w-full">
-                        <div className="flex items-center gap-2">
-                          <button
-                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${!showAllMyInvestments && !showAllForProject ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                            onClick={() => { setShowAllMyInvestments(false); setShowAllForProject(false); }}
-                          >
-                            This Investment Only
-                          </button>
-                          <button
-                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${showAllMyInvestments ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                            onClick={() => { setShowAllMyInvestments(true); setShowAllForProject(false); }}
-                          >
-                            All My Investments
-                          </button>
-                          <button
-                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${showAllForProject ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                            onClick={() => { setShowAllForProject(true); setShowAllMyInvestments(false); }}
-                          >
-                            All Payments for Project
-                          </button>
-                        </div>
-                      </div>
-                      {/* Payments Area Chart (Totals by Month) */}
-                      <ResponsiveContainer width="100%" height={220}>
-                        <AreaChart data={userStats.totalInvestment ? chartData : [{month: 'No data', value: 0}]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                          <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                          <YAxis tick={{ fontSize: 11 }} />
-                          <Tooltip formatter={v => `$${v.toLocaleString()}`} />
-                          <Area type="monotone" dataKey="value" stroke="#22c55e" fillOpacity={1} fill="#22c55e" />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Ownership & Progress */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-              {proposalData && userStats.currentProjectInvestment > 0 ? (
-                <>
+            {/* Stewardship Overview */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 mb-6 border border-gray-200 dark:border-gray-700">
+              {/* Personal Giving Summary */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
-                  className="flex-1 bg-white rounded-lg p-6 text-center flex flex-col items-center justify-center h-[350px] shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md border-l-4 border-indigo-500"
                 >
-                  <div className="text-xs text-gray-500 mb-2">GOAL ${proposalData?.budget?.toLocaleString() || '0'}</div>
-                  <div className="flex items-center justify-center mb-3">
-                    {[...Array(10)].map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-5 h-16 md:w-8 md:h-32 mx-0.5 rounded-lg transition-all duration-300 ${
-                          i < Math.floor((proposalData?.amount_raised || 0) / (proposalData?.budget || 1) * 10) 
-                            ? "bg-gradient-to-b from-blue-600 to-blue-700" 
-                            : "bg-gray-200"
-                        }`}
-                      />
-                    ))}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-indigo-100 dark:bg-indigo-900 rounded-lg">
+                      <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Stewardship</h3>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{userName}</p>
+                    </div>
                   </div>
-                  <div className="text-xs font-semibold text-gray-700 mb-1.5">AMOUNT YOU INVESTED</div>
-                  <div className="text-lg font-bold text-blue-600">
-                    {isLoading ? (
-                      <div className="animate-pulse bg-gray-200 h-6 w-28 mx-auto rounded-lg"></div>
-                    ) : (
-                      `$${userStats.currentProjectInvestment.toLocaleString()}`
-                    )}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Total Giving This Year</span>
+                      <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">${userStats.totalContributions.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Ministries Supported</span>
+                      <span className="text-lg font-bold text-purple-600 dark:text-purple-400">{userStats.numberOfProjects}</span>
+                    </div>
                   </div>
                 </motion.div>
-                  <motion.div 
-                    whileHover={{ scale: 1.02 }}
-                    className="flex-1 rounded-lg p-6 text-center flex flex-col justify-center items-center h-[350px] shadow-lg hover:shadow-xl transition-all duration-300"
+
+                {/* Give Button */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleGive();
+                    }}
+                    disabled={!user}
+                    className="w-full px-6 py-3 bg-indigo-600 dark:bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-700 active:bg-indigo-800 transition-colors font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative z-10 cursor-pointer"
+                    style={{ pointerEvents: user ? 'auto' : 'none' }}
                   >
-                     {/* Ownership Share Pie Chart */}
-                     <div className="w-full flex flex-col items-center mt-6">
-                        <ResponsiveContainer className={`${isMobile ? 'w-full' : 'w-full'}`} width="100%" height={isMobile ? 220 : 280}>
-                          <PieChart>
-                            <defs>
-                              <linearGradient id="colorYourShare" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#0284c7" stopOpacity={0.8}/>
-                              </linearGradient>
-                              <linearGradient id="colorOthers" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#2563eb" stopOpacity={0.8}/>
-                              </linearGradient>
-                            </defs>
-                            <Pie
-                              data={ownershipPieData}
-                              dataKey="value"
-                              nameKey="name"
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={isMobile ? 50 : 70}
-                              outerRadius={isMobile ? 80 : 120}
-                              paddingAngle={2}
-                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                              labelLine={false}
-                              animationDuration={2000}
-                              animationBegin={0}
-                              isAnimationActive={true}
-                              animationEasing="ease-out"
-                            >
-                              {ownershipPieData.map((entry, idx) => (
-                                <Cell 
-                                  key={`cell-${idx}`} 
-                                  fill={pieColors[idx]}
-                                  stroke="#fff"
-                                  strokeWidth={2}
-                                  style={{
-                                    filter: 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))'
-                                  }}
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip 
-                              formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']}
-                              contentStyle={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                border: 'none',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                                padding: '10px'
-                              }}
-                            />
-                            <Legend 
-                              verticalAlign="bottom" 
-                              height={36}
-                              formatter={(value) => (
-                                <span style={{ 
-                                  color: '#4B5563', 
-                                  fontSize: isMobile ? '11px' : '12px'
-                                }}>{value}</span>
-                              )}
-                              wrapperStyle={{
-                                paddingTop: '15px'
-                              }}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                  </motion.div>
-                </>
-              ) : selectedTab === "MEMBERSHIP" && !hasMembershipPayment ? (
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  className="flex-1 bg-gradient-to-br from-lime-400 to-lime-500 rounded-lg p-6 text-center flex items-center justify-center h-[350px] shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <div className="flex flex-col items-center justify-center text-white">
-                    <svg className="h-12 w-12 text-white mb-3" />
-                    <div className="font-semibold mb-2 capitalize text-xs">
-                      You are not a paid member yet.
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (proposalData) {
-                          setShowMembershipModal(true);
-                        } else {
-                          toast.error('Membership proposal not found');
-                        }
-                      }}
-                      className="px-4 py-2 bg-white text-lime-600 rounded-lg font-medium hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md capitalize text-xs"
-                    >
-                      Click here to make a payment
-                    </button>
-                  </div>
-                </motion.div>
-              ) : (
-                <></>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Give to {selectedTab}</span>
+                  </button>
+                </div>
+
+                {/* Community Impact */}
+                <CommunityImpact 
+                  impactStats={{
+                    livesTouched: proposalData?.investor_count || 0,
+                    ministriesSupported: userStats.numberOfProjects,
+                    outreachImpact: categoryCounts[dbTabName] || 0
+                  }}
+                />
+              </div>
+
+              {/* Giving Summary Cards */}
+              {proposalData && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                  <GivingCard
+                    title="Giving Partners"
+                    amount={proposalData?.investor_count || 0}
+                    icon={
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    }
+                    color="indigo"
+                  />
+                  <GivingCard
+                    title="Blessings Received"
+                    amount={`$${proposalData?.amount_raised?.toLocaleString() || '0'}`}
+                    icon={
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    }
+                    color="purple"
+                  />
+                  <GivingCard
+                    title="Still Needed"
+                    amount={`$${((proposalData?.budget || 0) - (proposalData?.amount_raised || 0)).toLocaleString()}`}
+                    icon={
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    }
+                    color="gold"
+                  />
+                </div>
               )}
             </div>
 
-            {/* Existing Proposals List Section */}
+            {/* Giving Timeline Chart */}
+            <div className="mb-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Your Giving Journey</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        showAllMyInvestments 
+                          ? 'bg-indigo-600 text-white' 
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                      onClick={() => { 
+                        if (showAllMyInvestments) {
+                          setShowAllMyInvestments(false);
+                        } else {
+                          setShowAllMyInvestments(true);
+                        }
+                      }}
+                    >
+                      All My Giving
+                    </button>
+                  </div>
+                </div>
+                {proposalData && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 italic">"{proposalData.title}"</p>
+                )}
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={userStats.totalContributions ? chartData : [{month: 'No data', value: 0}]} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                    <YAxis tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                    <Tooltip 
+                      formatter={(v) => [`$${v.toLocaleString()}`, 'Giving']}
+                      contentStyle={{
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                        color: '#f3f4f6'
+                      }}
+                    />
+                    <Area type="monotone" dataKey="value" stroke="#818cf8" strokeWidth={2} fill="#818cf8" fillOpacity={0.3} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Progress & Contribution */}
+            {proposalData && userStats.currentProjectContribution > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div className="lg:col-span-3 space-y-6">
+                  <motion.div 
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-indigo-600 dark:bg-gray-800 rounded-lg p-6 text-white shadow-md border border-indigo-700 dark:border-gray-700"
+                  >
+                    <div className="text-center mb-4">
+                      <p className="text-sm opacity-90 mb-1">Ministry Goal</p>
+                      <p className="text-2xl font-bold">${proposalData?.budget?.toLocaleString() || '0'}</p>
+                    </div>
+                    <div className="flex items-center justify-center gap-1 mb-4">
+                      {[...Array(10)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-2 h-16 rounded-full transition-all duration-300 ${
+                            i < Math.floor((proposalData?.amount_raised || 0) / (proposalData?.budget || 1) * 10) 
+                              ? "bg-white" 
+                              : "bg-white/30"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm opacity-90 mb-1">Your Faithful Giving</p>
+                      <p className="text-3xl font-bold">
+                        ${userStats.currentProjectContribution.toLocaleString()}
+                      </p>
+                    </div>
+                  </motion.div>
+
+                  <motion.div 
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-gray-800 rounded-lg p-6 shadow-md border border-gray-700"
+                  >
+                    <h4 className="text-center text-sm font-semibold text-gray-300 mb-4">Community Giving</h4>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={ownershipPieData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={70}
+                          paddingAngle={2}
+                          label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
+                        >
+                          {ownershipPieData.map((entry, idx) => (
+                            <Cell key={`cell-${idx}`} fill={pieColors[idx]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value) => `$${value.toLocaleString()}`}
+                          contentStyle={{
+                            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                            border: '1px solid #374151',
+                            borderRadius: '8px',
+                            color: '#f3f4f6'
+                          }}
+                        />
+                        <Legend 
+                          verticalAlign="bottom" 
+                          height={36}
+                          formatter={(value) => (
+                            <span style={{ fontSize: '12px', color: '#d1d5db' }}>{value}</span>
+                          )}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                </div>
+              </div>
+            )}
+
+            {/* Ministry List */}
             {proposalData && (
               <div className="mt-6">
                 <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center space-x-2">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={showOnlyInvested}
-                        onChange={(e) => setShowOnlyInvested(e.target.checked)}
-                      />
-                      <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                      <span className="ml-2 text-xs font-medium text-gray-900">Show only my investments</span>
-                    </label>
-                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Ministry Opportunities</h3>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={showOnlyInvested}
+                      onChange={(e) => setShowOnlyInvested(e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Show only my ministries</span>
+                  </label>
                 </div>
                 <ProposalList
-                  showInvestButton={true} 
-                  category={selectedTab} 
+                  showDonateButton={true} 
+                  category={dbTabName} 
                   showOnlyInvested={showOnlyInvested}
                   userId={user?.id}
                 />
@@ -789,17 +888,18 @@ const Dashboard = () => {
                 onClose={() => setShowMembershipModal(false)}
               />
             )}
+
+            {/* Giving Modal */}
+            <GivingModal
+              isOpen={showGivingModal}
+              onClose={() => setShowGivingModal(false)}
+              categoryName={selectedTab}
+            />
           </div>
         </div>
-       
       </div>
     </Admin>
   );
 };
 
-// Add PropTypes validation
-Dashboard.propTypes = {
-  // Add any props if needed
-};
-
-export default withAuth(Dashboard); 
+export default withAuth(Dashboard);

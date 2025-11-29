@@ -1,0 +1,35 @@
+{
+    "name": "profaith",
+    "version": "0.1.0",
+    "private": true,
+    "main": "index.js",
+    "scripts": {
+      "start": "expo start",
+      "android": "expo run:android",
+      "ios": "expo run:ios",
+      "build:android": "eas build --platform android --profile production",
+      "build:android:preview": "eas build --platform android --profile preview",
+      "lint": "eslint ."
+    },
+    "dependencies": {
+      "@react-native-async-storage/async-storage": "2.2.0",
+      "@stripe/stripe-react-native": "^0.37.1",
+      "@supabase/supabase-js": "^2.45.0",
+      "babel-preset-expo": "^54.0.6",
+      "expo": "~54.0.24",
+      "expo-camera": "~17.0.9",
+      "expo-linking": "~8.0.9",
+      "expo-status-bar": "~3.0.8",
+      "expo-updates": "~29.0.13",
+      "nativewind": "^4.2.1",
+      "react": "19.1.0",
+      "react-native": "0.81.5",
+      "react-native-svg": "^15.8.0",
+      "tailwindcss": "^3.4.18"
+    },
+    "devDependencies": {
+      "@types/react": "~19.1.10",
+      "typescript": "~5.9.2"
+    }
+  }
+  

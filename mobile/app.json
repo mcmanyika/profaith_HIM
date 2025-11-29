@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "mobile",
+    "slug": "mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F5F5"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mobile.app"
+    },
+    "android": {
+      "package": "com.mobile.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F5F5"
+      }
+    },
+    "web": {},
+    "plugins": [
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.mobile.app"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f3f2519f-6c49-4f11-886d-ac30dc39f9ad"
+      }
+    }
+  }
+}

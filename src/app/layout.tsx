@@ -1,15 +1,15 @@
 
-
 import './globals.css'
 import 'react-toastify/dist/ReactToastify.css'
 import { Inter } from 'next/font/google'
 import AuthProvider from "../components/auth-provider"
+import { ThemeProvider } from "../contexts/ThemeContext"
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: "KUMUSHA",
-  description: "Its an African citizen agenda.",
+  title: "Profaith Church",
+  description: "Comprehensive church management system for members, ministries, giving, and community.",
 };
 
 export default function RootLayout({
@@ -18,9 +18,24 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const theme = localStorage.getItem('theme') || 'dark';
+                document.documentElement.classList.remove('light', 'dark');
+                document.documentElement.classList.add(theme);
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={inter.className}>
-      <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

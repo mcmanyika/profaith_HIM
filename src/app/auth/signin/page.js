@@ -26,8 +26,6 @@ function SignIn() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState(null)
-  const [logoUrl, setLogoUrl] = useState(null)
-  const [isLogoLoading, setIsLogoLoading] = useState(true)
   const [remainingAttempts, setRemainingAttempts] = useState(3)
   const [emailVerificationSent, setEmailVerificationSent] = useState(false)
   const [emailVerificationCode, setEmailVerificationCode] = useState('')
@@ -68,26 +66,12 @@ function SignIn() {
       }
     )
 
-    const getLogoUrl = async () => {
-      try {
-        const { data } = await supabase.storage
-          .from('images')
-          .getPublicUrl('logo.png')
-        setLogoUrl(data.publicUrl)
-      } catch (error) {
-        console.error('Error loading logo:', error)
-      } finally {
-        setIsLogoLoading(false)
-      }
-    }
-
     const checkLockout = () => {
       const { attempts } = getLoginAttempts()
       setRemainingAttempts(Math.max(0, 3 - attempts))
     }
 
     checkUser()
-    getLogoUrl()
     checkLockout()
     return () => subscription.unsubscribe()
   }, [router, supabase])
@@ -290,20 +274,18 @@ function SignIn() {
         <div className="w-full md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-12">
           <div className="text-center text-gray-600">
             <div className="flex justify-center mb-6">
-                <Image 
-                  src='https://sdlrxbcshhjhuaqoidzh.supabase.co/storage/v1/object/sign/images/logo.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InN0b3JhZ2UtdXJsLXNpZ25pbmcta2V5X2ZiMTA0MWNmLWRlYmUtNGZlZC04YWQ3LWFhMTk2ZDJiN2Q0YSJ9.eyJ1cmwiOiJpbWFnZXMvbG9nby5wbmciLCJpYXQiOjE3NDg3OTM1MTgsImV4cCI6MTc4MDMyOTUxOH0.b5KORbht1TJ9m8oIsPMaexeHknIu00diC51ECjxAmvg'
+                <img 
+                  src="https://evvgpmryhbmljdxjuxth.supabase.co/storage/v1/object/public/images/logo.png"
                   alt="Logo" 
                   width={200} 
                   height={200}
-                  priority
                   className="rounded-full object-contain" 
                 />
               
             </div>
             <h1 className="text-6xl font-bold mb-4 uppercase">
-              <p className="text-sm font-thin">Investor Portal</p>
+              <p className="text-sm font-thin">Church Member Portal</p>
             </h1>
-            <p className="text-gray-600 text-sm capitalize mb-8">Join our community and start your journey today</p>
             
             {/* Download Buttons */}
             <div className="space-y-3">

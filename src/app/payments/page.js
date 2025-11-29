@@ -10,7 +10,7 @@ const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { ssr:
 
 function Portfolio() {
     const [transactions, setTransactions] = useState([]);
-    const [proposals, setProposals] = useState([]);
+    const [projects, setProjects] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const supabase = createClientComponentClient();
@@ -28,21 +28,26 @@ function Portfolio() {
                 const { data: { user }, error: userError } = await supabase.auth.getUser();
                 if (userError) throw userError;
 
-                // Fetch all proposals (id and title)
-                const { data: proposalsData, error: proposalsError } = await supabase
-                    .from('proposals')
-                    .select('id, title');
-                if (proposalsError) throw proposalsError;
-                setProposals(proposalsData || []);
+                // Fetch all projects (id, title, and category)
+                const { data: projectsData, error: projectsError } = await supabase
+                    .from('projects')
+                    .select('id, title, category')
+                    .eq('status', 'active');
+                if (projectsError) throw projectsError;
+                setProjects(projectsData || []);
 
-                // Fetch transactions for the user
+                // Fetch transactions for the user - support both user_id and metadata.investor_id
                 const { data: transactionsData, error: transactionsError } = await supabase
                     .from('transactions')
-                    .select('id, amount, status, created_at, metadata')
-                    .eq('metadata->>investor_id', user.id)
+                    .select('id, amount, status, created_at, metadata, user_id, category_name, type')
                     .order('created_at', { ascending: false });
                 if (transactionsError) throw transactionsError;
-                setTransactions(transactionsData || []);
+                
+                // Filter transactions by user_id OR metadata.investor_id (for legacy donations)
+                const userTransactions = (transactionsData || []).filter(
+                    tx => tx.user_id === user.id || tx.metadata?.investor_id === user.id
+                );
+                setTransactions(userTransactions);
             } catch (error) {
                 console.error('Error:', error);
                 setError(error.message);
@@ -61,10 +66,19 @@ function Portfolio() {
         });
     }, []);
 
-    // Helper to get proposal title from proposals list
-    const getProposalTitle = (proposalId) => {
-        const proposal = proposals.find(p => p.id === proposalId);
-        return proposal ? proposal.title : 'Unknown Proposal';
+    // Helper to get project title or category name from transaction
+    const getTransactionTitle = (transaction) => {
+        // First check if it's linked to a project
+        const projectId = transaction.metadata?.proposal_id || transaction.metadata?.project_id;
+        if (projectId) {
+            const project = projects.find(p => p.id === projectId);
+            if (project) return project.title;
+        }
+        // If no project, use category_name for direct donations
+        if (transaction.category_name) {
+            return transaction.category_name;
+        }
+        return 'Donation';
     };
 
     // Sorting logic
@@ -82,23 +96,48 @@ function Portfolio() {
         return sortDirection === 'asc' ? '↑' : '↓';
     };
 
-    // Calculate total amount by proposal
-    const amountByProposal = proposals.map(proposal => {
+    // Calculate total amount by project/category
+    const amountByProject = projects.map(project => {
         const total = transactions
-            .filter(tx => tx.metadata?.proposal_id === proposal.id)
+            .filter(tx => {
+                const projectId = tx.metadata?.proposal_id || tx.metadata?.project_id;
+                return projectId === project.id;
+            })
             .reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
-        return { id: proposal.id, title: proposal.title, total };
+        return { id: project.id, title: project.title, total };
     }).filter(item => item.total > 0);
+    
+    // Also include direct donations by category
+    const categoryTotals = {};
+    transactions.forEach(tx => {
+        const projectId = tx.metadata?.proposal_id || tx.metadata?.project_id;
+        if (!projectId && tx.category_name) {
+            if (!categoryTotals[tx.category_name]) {
+                categoryTotals[tx.category_name] = { id: `category-${tx.category_name}`, title: tx.category_name, total: 0 };
+            }
+            categoryTotals[tx.category_name].total += Number(tx.amount) || 0;
+        }
+    });
+    
+    const amountByInvestment = [...amountByProject, ...Object.values(categoryTotals)].filter(item => item.total > 0);
 
     // Filter transactions based on selected investment
     const filteredTransactions = selectedInvestment === 'all' 
         ? transactions 
-        : transactions.filter(tx => tx.metadata?.proposal_id === selectedInvestment);
+        : transactions.filter(tx => {
+            if (selectedInvestment.startsWith('category-')) {
+                const category = selectedInvestment.replace('category-', '');
+                const projectId = tx.metadata?.proposal_id || tx.metadata?.project_id;
+                return !projectId && tx.category_name === category;
+            }
+            const projectId = tx.metadata?.proposal_id || tx.metadata?.project_id;
+            return projectId === selectedInvestment;
+        });
 
     // Filter chart data based on selected investment
     const filteredChartData = selectedInvestment === 'all'
-        ? amountByProposal
-        : amountByProposal.filter(item => item.id === selectedInvestment);
+        ? amountByInvestment
+        : amountByInvestment.filter(item => item.id === selectedInvestment);
 
     // Calculate total amount for filtered transactions
     const totalAmount = filteredTransactions.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
@@ -142,8 +181,8 @@ function Portfolio() {
     const sortedTransactions = [...filteredTransactions].sort((a, b) => {
         let aValue, bValue;
         if (sortKey === 'proposal') {
-            aValue = getProposalTitle(a.metadata?.proposal_id).toLowerCase();
-            bValue = getProposalTitle(b.metadata?.proposal_id).toLowerCase();
+            aValue = getTransactionTitle(a).toLowerCase();
+            bValue = getTransactionTitle(b).toLowerCase();
         } else if (sortKey === 'amount') {
             aValue = a.amount;
             bValue = b.amount;
@@ -190,7 +229,7 @@ function Portfolio() {
                     {/* Dropdown */}
                     <div className="relative w-full md:max-w-xs mb-2 md:mb-0">
                         <label htmlFor="investment-filter" className="block text-sm font-medium text-gray-700 mb-2">
-                            Filter by Investment
+                            Filter by Project/Category
                         </label>
                         <div className="relative">
                             <select
@@ -202,10 +241,10 @@ function Portfolio() {
                                 }}
                                 className="appearance-none block w-full pl-4 pr-10 py-2.5 text-base border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ease-in-out hover:border-blue-400 cursor-pointer"
                             >
-                                <option value="all" className="py-2">All Investments</option>
-                                {amountByProposal.map((proposal) => (
-                                    <option key={proposal.id} value={proposal.id} className="py-2">
-                                        {proposal.title}
+                                <option value="all" className="py-2">All Projects/Categories</option>
+                                {amountByInvestment.map((item) => (
+                                    <option key={item.id} value={item.id} className="py-2">
+                                        {item.title}
                                     </option>
                                 ))}
                             </select>
@@ -225,8 +264,8 @@ function Portfolio() {
                 </div>
                 {/* Chart Section */}
                 <div className="mb-8 bg-white rounded-lg shadow p-6">
-                    <h2 className="text-lg font-semibold mb-4">Total Amount by Investment</h2>
-                    {amountByProposal.length === 0 ? (
+                    <h2 className="text-lg font-semibold mb-4">Total Amount by Project/Category</h2>
+                    {amountByInvestment.length === 0 ? (
                         <div className="text-gray-400 text-center">No data to display.</div>
                     ) : (
                         <div className="flex justify-center items-center h-72">
@@ -250,7 +289,7 @@ function Portfolio() {
                         {/* Header Row for Sorting */}
                         <div className="hidden md:flex px-6 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
                             <div className="flex-1 cursor-pointer select-none" onClick={() => handleSort('proposal')}>
-                                Investment <span className="ml-1">{getSortIcon('proposal')}</span>
+                                Project/Category <span className="ml-1">{getSortIcon('proposal')}</span>
                             </div>
                             <div className="w-32 cursor-pointer select-none" onClick={() => handleSort('amount')}>
                                 Amount <span className="ml-1">{getSortIcon('amount')}</span>
@@ -264,13 +303,12 @@ function Portfolio() {
                         </div>
                         {/* Mobile Header Row */}
                         <div className="flex md:hidden px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            <div className="flex-1">Investment</div>
+                            <div className="flex-1">Project/Category</div>
                             <div className="w-24">Amount</div>
                         </div>
                         {/* Transaction Rows */}
                         <div>
                             {paginatedTransactions.map((transaction) => {
-                                const proposalId = transaction.metadata?.proposal_id;
                                 return (
                                     <div
                                         key={transaction.id}
@@ -282,7 +320,7 @@ function Portfolio() {
                                             <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600">
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m4 0h-1v4h-1m-4 0h-1v-4h-1m4 0h-1v4h-1" /></svg>
                                             </span>
-                                            <div className="text-base font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">{getProposalTitle(proposalId)}</div>
+                                            <div className="text-base font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">{getTransactionTitle(transaction)}</div>
                                         </div>
                                         {/* Amount & Icon */}
                                         <div className="w-24 md:w-32 flex items-center gap-2 mb-2 md:mb-0">
@@ -357,12 +395,12 @@ function Portfolio() {
                         </button>
                         <h3 className="text-xl font-bold mb-4 text-blue-700 flex items-center gap-2">
                             <span className="inline-block w-2 h-6 bg-blue-500 rounded-full"></span>
-                            Investment Details
+                            Transaction Details
                         </h3>
                         <div className="space-y-3">
                             <div>
-                                <span className="block text-xs text-gray-500 mb-1">Investment</span>
-                                <span className="font-semibold text-gray-800">{getProposalTitle(selectedTransaction.metadata?.proposal_id)}</span>
+                                <span className="block text-xs text-gray-500 mb-1">Project/Category</span>
+                                <span className="font-semibold text-gray-800">{getTransactionTitle(selectedTransaction)}</span>
                             </div>
                             <div>
                                 <span className="block text-xs text-gray-500 mb-1">Amount</span>
