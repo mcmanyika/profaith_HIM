@@ -27,7 +27,8 @@
       [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "merchant.com.mobile.app"
+          "merchantIdentifier": "merchant.com.mobile.app",
+          "enableGooglePay": true
         }
       ]
     ],
