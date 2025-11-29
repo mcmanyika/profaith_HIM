@@ -15,14 +15,16 @@ import GivingModal from '../../components/church/GivingModal';
 import { useRouter } from 'next/navigation';
 
 function getMonthlyTotals(transactions) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
   const monthlyTotals = Array(12).fill(0);
   transactions.forEach(tx => {
     if (!tx.created_at) return;
     const date = new Date(tx.created_at);
     if (isNaN(date)) return;
     const month = date.getMonth();
-    monthlyTotals[month] += Number(tx.amount || 0);
+    // Map month index to the new order: Jul(6)=0, Aug(7)=1, Sep(8)=2, Oct(9)=3, Nov(10)=4, Dec(11)=5, Jan(0)=6, etc.
+    const monthIndex = month >= 6 ? month - 6 : month + 6;
+    monthlyTotals[monthIndex] += Number(tx.amount || 0);
   });
   return months.map((month, idx) => ({ month, value: monthlyTotals[idx] }));
 }
@@ -350,6 +352,7 @@ const Dashboard = () => {
     fetchAllData();
   }, [authLoading, user, supabase, selectedProjectId, updateUserStats, cachedData]);
 
+
   // Listen for refresh events from payment modals
   useEffect(() => {
     const handleRefresh = () => {
@@ -544,6 +547,33 @@ const Dashboard = () => {
     }
   }, [showAllMyInvestments, userTransactions, categoryProjectIds, currentCategoryName, selectedProjectId]);
 
+  // Calculate ministries supported data for pie chart
+  const ministriesSupportedData = useMemo(() => {
+    if (!userTransactions || userTransactions.length === 0) return {};
+    
+    const ministryTotals = {};
+    
+    userTransactions.forEach(tx => {
+      const projectId = tx.metadata?.proposal_id || tx.metadata?.project_id;
+      const amount = Number(tx.amount || 0);
+      
+      if (projectId) {
+        // Find the project to get its category
+        const project = allProjects.find(p => p.id === projectId);
+        if (project && project.category) {
+          const categoryName = getDisplayName(project.category) || project.category;
+          ministryTotals[categoryName] = (ministryTotals[categoryName] || 0) + amount;
+        }
+      } else if (tx.category_name) {
+        // Direct donation to category
+        const categoryName = getDisplayName(tx.category_name) || tx.category_name;
+        ministryTotals[categoryName] = (ministryTotals[categoryName] || 0) + amount;
+      }
+    });
+    
+    return ministryTotals;
+  }, [userTransactions, allProjects, getDisplayName]);
+
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Friend';
   const dbTabName = getDbName(selectedTab);
 
@@ -597,7 +627,7 @@ const Dashboard = () => {
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 md:p-6 border border-gray-200 dark:border-gray-800">
             {/* Category Tabs - Church Themed */}
             <div className="flex flex-col space-y-3 md:space-y-0 mb-8">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="flex gap-3 w-full">
                 {categories.map((category) => (
                   <motion.button
                     key={category.display_name}
@@ -605,7 +635,7 @@ const Dashboard = () => {
                     disabled={isCategoryLoading}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`relative px-4 py-3 rounded-lg font-semibold text-xs md:text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
+                    className={`relative flex-1 px-4 py-3 rounded-lg font-semibold text-xs md:text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
                       selectedTab === category.display_name
                         ? "bg-indigo-600 text-white shadow-md"
                         : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm border border-gray-300 dark:border-gray-700"
@@ -664,7 +694,23 @@ const Dashboard = () => {
                 </motion.div>
 
                 {/* Give Button */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+                <motion.div 
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg p-6 shadow-md border border-indigo-100 dark:border-indigo-800"
+                >
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg">
+                        <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Make a Difference</h3>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 italic mb-4">
+                      "Your faithful giving touches lives and builds God's kingdom. Thank you for making a difference!"
+                    </p>
+                  </div>
                   <button
                     onClick={(e) => {
                       e.preventDefault();
@@ -672,7 +718,7 @@ const Dashboard = () => {
                       handleGive();
                     }}
                     disabled={!user}
-                    className="w-full px-6 py-3 bg-indigo-600 dark:bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-700 active:bg-indigo-800 transition-colors font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative z-10 cursor-pointer"
+                    className="w-full px-6 py-4 bg-indigo-600 dark:bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-700 active:bg-indigo-800 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative z-10 cursor-pointer transform hover:scale-105"
                     style={{ pointerEvents: user ? 'auto' : 'none' }}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -680,15 +726,11 @@ const Dashboard = () => {
                     </svg>
                     <span>Give to {selectedTab}</span>
                   </button>
-                </div>
+                </motion.div>
 
                 {/* Community Impact */}
                 <CommunityImpact 
-                  impactStats={{
-                    livesTouched: proposalData?.investor_count || 0,
-                    ministriesSupported: userStats.numberOfProjects,
-                    outreachImpact: categoryCounts[dbTabName] || 0
-                  }}
+                  ministriesSupportedData={ministriesSupportedData}
                 />
               </div>
 

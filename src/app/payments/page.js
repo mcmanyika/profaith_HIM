@@ -15,7 +15,7 @@ function Portfolio() {
     const [error, setError] = useState(null);
     const supabase = createClientComponentClient();
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const itemsPerPage = 5;
     const [sortKey, setSortKey] = useState('created_at');
     const [sortDirection, setSortDirection] = useState('desc');
     const [selectedTransaction, setSelectedTransaction] = useState(null);
