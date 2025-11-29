@@ -72,7 +72,7 @@ function Admin({ children }) {
     // Initial fetch
     fetchData();
 
-    // Cleanup subscription
+    // Cleanup subscriptions
     return () => {
       subscription?.unsubscribe();
     };
