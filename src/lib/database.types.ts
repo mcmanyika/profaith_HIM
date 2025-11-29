@@ -9,6 +9,35 @@ export type Json =
 export interface Database {
     public: {
         Tables: {
+            contributions: {
+                Row: {
+                    id: string
+                    amount: number
+                    payment_id: string | null
+                    proposal_id: string
+                    member_id: string
+                    status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'CANCELLED'
+                    created_at?: string
+                }
+                Insert: {
+                    id?: string
+                    amount: number
+                    payment_id?: string | null
+                    proposal_id: string
+                    member_id: string
+                    status?: 'COMPLETED' | 'PENDING' | 'FAILED' | 'CANCELLED'
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    amount?: number
+                    payment_id?: string | null
+                    proposal_id?: string
+                    member_id?: string
+                    status?: 'COMPLETED' | 'PENDING' | 'FAILED' | 'CANCELLED'
+                    created_at?: string
+                }
+            }
             investments: {
                 Row: {
                     id: string
