@@ -1,7 +1,0 @@
-rootProject.name = 'mobile'
-apply from: file("../node_modules/@react-native/gradle-plugin/settings.gradle")
-includeBuild("../node_modules/@react-native/gradle-plugin")
-
-include ':app'
-project(':app').projectDir = new File(rootProject.projectDir, './app')
-
